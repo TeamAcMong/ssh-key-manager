@@ -183,6 +183,8 @@ export interface EnvInfo {
   platform: string;
   /** Unpacked (development) build: the UI warns when the real ~/.ssh is in use. */
   devMode: boolean;
+  /** OpenSSH directory actually in use (the configured one, or the auto-detected one). */
+  opensshBinDir: string;
 }
 
 export interface ConnectionTestResult {

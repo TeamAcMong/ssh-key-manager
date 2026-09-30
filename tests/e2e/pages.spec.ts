@@ -77,6 +77,8 @@ for (const theme of ['light', 'dark'] as const) {
       await page.getByTestId('nav-settings').click();
       await expect(page.getByTestId('settings-sshdir')).toHaveValue(l.sshDir);
       await expect(page.getByTestId('real-dir-warning')).toHaveCount(0);
+      // Auto-detected OpenSSH dir is shown as a real path, not as a placeholder.
+      await expect(page.getByTestId('settings-bindir')).toHaveValue(/OpenSSH$/i);
       await shot(page, `settings-${theme}`);
 
       // Agent: this machine's service is Disabled, so Start must explain the admin requirement.

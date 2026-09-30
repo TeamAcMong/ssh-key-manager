@@ -120,7 +120,6 @@
   "settings.pick": "Chọn thư mục…",
   "settings.realDirWarn": "Đang dùng thư mục SSH thật của bạn trong chế độ phát triển. Hãy chọn một thư mục sandbox (vd: .\\sandbox-ssh) khi thử nghiệm.",
   "settings.bin": "Thư mục OpenSSH (ssh.exe, ssh-keygen.exe)",
-  "settings.binAuto": "Tự động phát hiện",
   "settings.version": "Phiên bản",
   "settings.theme": "Giao diện",
   "settings.theme.system": "Theo Windows",
@@ -193,5 +192,8 @@
   "test.fix.perms": "Sửa quyền file",
   "test.fix.agent": "Thêm key vào agent",
   "test.fix.startAgent": "Mở trang ssh-agent",
-  "test.permsFixed": "Đã sửa quyền cho các key không an toàn. Hãy chạy lại."
+  "test.permsFixed": "Đã sửa quyền cho các key không an toàn. Hãy chạy lại.",
+  "settings.useAuto": "Dùng tự động",
+  "settings.binAutoHint": "Đường dẫn được tự động phát hiện khi mở ứng dụng.",
+  "settings.binManualHint": "Đường dẫn do bạn chọn. Bấm \"Dùng tự động\" để quay lại tự động phát hiện."
 }

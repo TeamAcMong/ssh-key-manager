@@ -58,14 +58,14 @@ export function SettingsPage(props: { settings: Settings; env: EnvInfo | null; o
         </MessageBar>
       ) : null}
 
-      <Field label={t('settings.bin')}>
+      <Field label={t('settings.bin')} hint={settings.binDir === null ? t('settings.binAutoHint') : t('settings.binManualHint')}>
         <div className={s.row}>
-          <Input className={s.grow} readOnly value={settings.binDir ?? t('settings.binAuto')} />
+          <Input className={s.grow} readOnly value={settings.binDir ?? env?.opensshBinDir ?? ''} data-testid="settings-bindir" />
           <Button icon={<Folder20Regular />} onClick={() => void pick('bin')}>
             {t('settings.pick')}
           </Button>
           <Button disabled={settings.binDir === null} onClick={() => void save({ binDir: null })}>
-            {t('settings.binAuto')}
+            {t('settings.useAuto')}
           </Button>
         </div>
       </Field>

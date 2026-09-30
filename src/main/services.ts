@@ -83,6 +83,7 @@ export class AppServices {
       isSandbox: isSandboxDir(this.ctx.sshDir, defaultSshDir),
       platform: process.platform,
       devMode: !app.isPackaged,
+      opensshBinDir: path.dirname(this.ctx.bin.keygen),
       defaultComment: `${os.userInfo().username}@${process.env.COMPUTERNAME ?? os.hostname()}`
     };
   }
