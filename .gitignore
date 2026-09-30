@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Build output (electron-vite, CLI tsc, electron-builder)
+out/
+release/
+*.tsbuildinfo
+
+# Local data written while developing / testing — may contain real key files
+sandbox-ssh/
+.dev-appdata/
+.tmp-test/
+
+# Test reports
+test-results/
+playwright-report/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Safety net: never commit SSH key material, wherever it ends up
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+*.pem
+*.ppk
+*.key
+known_hosts*
+authorized_keys*
+
+# Environment / secrets
+.env
+.env.*
+
+# Editor & OS
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store
