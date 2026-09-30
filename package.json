@@ -1,7 +1,7 @@
 {
   "name": "ssh-key-manager",
   "productName": "SSH Key Manager",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Desktop GUI to generate and manage SSH keys",
   "main": "out/main/index.js",
