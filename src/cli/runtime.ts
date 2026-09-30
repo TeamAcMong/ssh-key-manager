@@ -30,7 +30,6 @@ export async function createRuntime(opts: GlobalOptions): Promise<Runtime> {
     binDir: settings.binDir,
     run: runProcess,
     platform,
-    ensureSshDir: sandbox,
     askpass: { helperPath: ASKPASS, nodeExe: process.execPath, nodeEnv: {} }
   });
   return { ctx, platform, tmpDir: path.join(platform.paths.appDataDir(), 'tmp') };

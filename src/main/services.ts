@@ -47,7 +47,6 @@ export class AppServices {
       binDir: this.settings.binDir,
       run: runProcess,
       platform: this.platform,
-      ensureSshDir: isSandboxDir(this.settings.sshDir, this.platform.paths.defaultSshDir()),
       askpass: {
         // Packaged: electron-builder copies the helper next to app.asar (a .cmd inside an asar cannot run).
         helperPath: app.isPackaged

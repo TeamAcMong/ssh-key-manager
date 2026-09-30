@@ -23,8 +23,14 @@ export interface CreateContextOptions {
   run: ProcessRunner;
   platform: Platform;
   askpass: Omit<AskpassConfig, 'pipePath'>;
-  /** Create the SSH dir if it does not exist (sandbox setup). */
-  ensureSshDir?: boolean;
+}
+
+/** Creates the SSH dir (and parents) when missing; refuses if the path is a file. */
+export async function ensureSshDir(dir: string): Promise<void> {
+  const st = await fs.stat(dir).catch(() => null);
+  if (st?.isDirectory()) return;
+  if (st) throw new SkmError('INVALID_INPUT', `Đường dẫn thư mục SSH đang là một file, không phải thư mục: ${dir}`);
+  await fs.mkdir(dir, { recursive: true });
 }
 
 export async function createContext(opts: CreateContextOptions): Promise<CoreContext> {
@@ -33,7 +39,7 @@ export async function createContext(opts: CreateContextOptions): Promise<CoreCon
     throw new SkmError('BINARY_NOT_FOUND', 'Không tìm thấy OpenSSH (ssh-keygen.exe). Hãy cài "OpenSSH Client" của Windows hoặc chọn đường dẫn trong Cài đặt.');
   }
   const guard = new PathGuard(opts.sshDir);
-  if (opts.ensureSshDir) await fs.mkdir(guard.root, { recursive: true });
+  await ensureSshDir(guard.root);
   const paths = opts.platform.paths;
   return {
     sshDir: guard.root,
