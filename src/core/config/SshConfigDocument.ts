@@ -1,4 +1,4 @@
-import type { HostEdit, HostEntry, HostFields } from '../types';
+import { STRICT_HOST_KEY_CHECKING, type HostEdit, type HostEntry, type HostFields, type StrictHostKeyChecking } from '../types';
 import { SkmError } from '../errors/SkmError';
 
 // Lossless ssh_config model: every original line is kept byte-for-byte (including EOL, BOM,
@@ -25,13 +25,14 @@ interface Block {
 }
 
 const DIRECTIVE = /^(\s*)([A-Za-z][A-Za-z0-9]*)(\s*=\s*|\s+)(.*?)(\s*)$/;
-const MANAGED_SINGLE = ['hostname', 'user', 'port', 'identitiesonly'] as const;
+const MANAGED_SINGLE = ['hostname', 'user', 'port', 'identitiesonly', 'stricthostkeychecking'] as const;
 const CANONICAL: Record<string, string> = {
   hostname: 'HostName',
   user: 'User',
   port: 'Port',
   identityfile: 'IdentityFile',
-  identitiesonly: 'IdentitiesOnly'
+  identitiesonly: 'IdentitiesOnly',
+  stricthostkeychecking: 'StrictHostKeyChecking'
 };
 
 export function parseDirective(text: string): Directive | null {
@@ -48,6 +49,10 @@ export function tokenize(value: string): string[] {
   let m: RegExpExecArray | null;
   while ((m = re.exec(value)) !== null) out.push(m[1] ?? m[2] ?? '');
   return out;
+}
+
+function isStrictValue(v: string): v is StrictHostKeyChecking {
+  return (STRICT_HOST_KEY_CHECKING as readonly string[]).includes(v);
 }
 
 export function formatValue(v: string): string {
@@ -70,6 +75,7 @@ export function validateHostFields(f: HostFields): HostFields {
     if (typeof i !== 'string' || i.length === 0 || i.length > 1024 || /["\r\n\0]/.test(i)) bad('Đường dẫn IdentityFile không hợp lệ.');
   }
   if (f.identitiesOnly !== null && f.identitiesOnly !== 'yes' && f.identitiesOnly !== 'no') bad('IdentitiesOnly chỉ nhận yes hoặc no.');
+  if (f.strictHostKeyChecking !== null && !STRICT_HOST_KEY_CHECKING.includes(f.strictHostKeyChecking)) bad(`StrictHostKeyChecking chỉ nhận ${STRICT_HOST_KEY_CHECKING.join(', ')}.`);
   return f;
 }
 
@@ -125,6 +131,7 @@ export class SshConfigDocument {
         port: null,
         identityFiles: [],
         identitiesOnly: null,
+        strictHostKeyChecking: null,
         otherDirectives: []
       };
       for (let i = b.header + 1; i < b.end; i++) {
@@ -138,6 +145,7 @@ export class SshConfigDocument {
         else if (k === 'port') entry.port ??= Number.parseInt(first, 10) || null;
         else if (k === 'identitiesonly') entry.identitiesOnly ??= first.toLowerCase() === 'yes' ? 'yes' : 'no';
         else if (k === 'identityfile') entry.identityFiles.push(first);
+        else if (k === 'stricthostkeychecking' && isStrictValue(first.toLowerCase())) entry.strictHostKeyChecking ??= first.toLowerCase() as StrictHostKeyChecking;
         else entry.otherDirectives.push({ key: d.key, value: d.value });
       }
       return entry;
@@ -195,9 +203,11 @@ export class SshConfigDocument {
       hostname: f.hostName,
       user: f.user,
       port: f.port === null ? null : String(f.port),
-      identitiesonly: f.identitiesOnly
+      identitiesonly: f.identitiesOnly,
+      stricthostkeychecking: f.strictHostKeyChecking
     };
-    for (const key of MANAGED_SINGLE) this.setSingle(index, key, desired[key]);
+    const unknownStrict = this.linesWithKey(index, 'stricthostkeychecking').some((i) => !isStrictValue((tokenize(parseDirective(this.lines[i]?.text ?? '')?.value ?? '')[0] ?? '').toLowerCase()));
+    for (const key of MANAGED_SINGLE) if (!(key === 'stricthostkeychecking' && unknownStrict)) this.setSingle(index, key, desired[key]);
     this.setIdentityFiles(index, f.identityFiles);
   }
 
@@ -278,6 +288,7 @@ export class SshConfigDocument {
     push('Port', f.port === null ? null : String(f.port));
     for (const i of f.identityFiles) push('IdentityFile', i);
     push('IdentitiesOnly', f.identitiesOnly);
+    push('StrictHostKeyChecking', f.strictHostKeyChecking);
 
     // ssh uses the first value found, so a new host must come before a catch-all "Host *".
     const catchAll = this.blocks().find((b) => b.kind === 'host' && tokenize(parseDirective(this.lines[b.header]?.text ?? '')?.value ?? '').join(' ') === '*');

@@ -123,6 +123,8 @@ export interface HostEntry {
   port: number | null;
   identityFiles: string[];
   identitiesOnly: 'yes' | 'no' | null;
+  /** Lowercased first value of StrictHostKeyChecking, or null when not set. */
+  strictHostKeyChecking: StrictHostKeyChecking | null;
   /** Directives the editor does not manage; preserved verbatim on save. */
   otherDirectives: { key: string; value: string }[];
 }
@@ -134,7 +136,12 @@ export interface HostFields {
   port: number | null;
   identityFiles: string[];
   identitiesOnly: 'yes' | 'no' | null;
+  strictHostKeyChecking: StrictHostKeyChecking | null;
 }
+
+/** Values OpenSSH accepts for StrictHostKeyChecking ("off" is an alias of "no"). */
+export const STRICT_HOST_KEY_CHECKING = ['accept-new', 'yes', 'ask', 'no', 'off'] as const;
+export type StrictHostKeyChecking = (typeof STRICT_HOST_KEY_CHECKING)[number];
 
 export type HostEdit =
   | { op: 'add'; fields: HostFields }

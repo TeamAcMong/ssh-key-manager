@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import { createTwoFilesPatch } from 'diff';
-import type { HostEdit, HostEntry, HostFields } from '../../core/types';
+import { STRICT_HOST_KEY_CHECKING, type HostEdit, type HostEntry, type HostFields } from '../../core/types';
 import { ConfigStore, identityFileRef } from '../../core/config/ConfigStore';
 import { SkmError } from '../../core/errors/SkmError';
 import { confirm, createRuntime, reportError, type GlobalOptions, type Runtime } from '../runtime';
@@ -12,6 +12,7 @@ interface HostOpts {
   port?: string;
   identity?: string;
   identitiesOnly?: string;
+  strictHostKeyChecking?: string;
   yes?: boolean;
 }
 
@@ -37,6 +38,11 @@ function apply(base: HostFields, o: HostOpts, rt: Runtime): HostFields {
     if (!['yes', 'no', ''].includes(o.identitiesOnly)) throw new SkmError('INVALID_INPUT', '--identities-only chỉ nhận yes, no hoặc "".');
     f.identitiesOnly = (o.identitiesOnly || null) as HostFields['identitiesOnly'];
   }
+  if (o.strictHostKeyChecking !== undefined) {
+    const v = o.strictHostKeyChecking.toLowerCase();
+    if (v !== '' && !(STRICT_HOST_KEY_CHECKING as readonly string[]).includes(v)) throw new SkmError('INVALID_INPUT', `--strict-host-key-checking chỉ nhận ${STRICT_HOST_KEY_CHECKING.join(', ')} hoặc "".`);
+    f.strictHostKeyChecking = (v || null) as HostFields['strictHostKeyChecking'];
+  }
   return f;
 }
 
@@ -58,6 +64,7 @@ function hostOptions(cmd: Command): Command {
     .option('--port <port>', 'Port ("" để xoá)')
     .option('--identity <key>', 'IdentityFile: tên key trong thư mục SSH hoặc đường dẫn ("" để xoá)')
     .option('--identities-only <yes|no>', 'IdentitiesOnly ("" để xoá)')
+    .option('--strict-host-key-checking <value>', 'StrictHostKeyChecking: accept-new = tự thêm host key mới vào known_hosts nhưng vẫn chặn key bị đổi ("" để xoá)')
     .option('-y, --yes', 'không hỏi xác nhận trước khi ghi');
 }
 
@@ -109,7 +116,7 @@ export function registerConfigCommands(program: Command, globals: () => GlobalOp
       const rt = await createRuntime(globals());
       const snap = await new ConfigStore(rt.ctx).read();
       for (const a of alias) if (snap.hosts.some((h) => h.patterns.includes(a))) throw new SkmError('FILE_EXISTS', `Host "${a}" đã có trong config — dùng "skm config set".`);
-      const fields = apply({ patterns: alias, hostName: null, user: null, port: null, identityFiles: [], identitiesOnly: null }, o, rt);
+      const fields = apply({ patterns: alias, hostName: null, user: null, port: null, identityFiles: [], identitiesOnly: null, strictHostKeyChecking: null }, o, rt);
       await previewAndWrite(rt, [{ op: 'add', fields }], o.yes === true);
     } catch (err) {
       reportError(err);
@@ -120,7 +127,7 @@ export function registerConfigCommands(program: Command, globals: () => GlobalOp
     try {
       const rt = await createRuntime(globals());
       const h = findHost((await new ConfigStore(rt.ctx).read()).hosts, alias);
-      const fields = apply({ patterns: h.patterns, hostName: h.hostName, user: h.user, port: h.port, identityFiles: h.identityFiles, identitiesOnly: h.identitiesOnly }, o, rt);
+      const fields = apply({ patterns: h.patterns, hostName: h.hostName, user: h.user, port: h.port, identityFiles: h.identityFiles, identitiesOnly: h.identitiesOnly, strictHostKeyChecking: h.strictHostKeyChecking }, o, rt);
       await previewAndWrite(rt, [{ op: 'update', index: h.index, fields }], o.yes === true);
     } catch (err) {
       reportError(err);

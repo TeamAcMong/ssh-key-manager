@@ -35,6 +35,7 @@ const fields = (over: Partial<HostFields> = {}): HostFields => ({
   port: null,
   identityFiles: ['~/.ssh/id_ed25519'],
   identitiesOnly: 'yes',
+  strictHostKeyChecking: null,
   ...over
 });
 
@@ -157,5 +158,27 @@ describe('SshConfigDocument edits', () => {
     expect(() => doc.applyEdits([{ op: 'add', fields: fields({ identityFiles: ['a"b'] }) }])).toThrow(/IdentityFile/);
     expect(() => doc.applyEdits([{ op: 'update', index: 2, fields: fields() }])).toThrow(/Match/);
     expect(() => doc.applyEdits([{ op: 'delete', index: 9 }])).toThrow(/không tồn tại/);
+  });
+});
+
+describe('StrictHostKeyChecking', () => {
+  it('is parsed, written for new hosts, and updated in place', () => {
+    const doc = SshConfigDocument.parse('Host hf\n    HostName hf.co\n    StrictHostKeyChecking Accept-New\n');
+    expect(doc.hosts()[0]).toMatchObject({ strictHostKeyChecking: 'accept-new', otherDirectives: [] });
+    doc.applyEdits([{ op: 'update', index: 0, fields: fields({ patterns: ['hf'], hostName: 'hf.co', user: null, identityFiles: [], identitiesOnly: null, strictHostKeyChecking: 'yes' }) }]);
+    expect(doc.serialize()).toBe('Host hf\n    HostName hf.co\n    StrictHostKeyChecking yes\n');
+    const empty = SshConfigDocument.parse('');
+    empty.applyEdits([{ op: 'add', fields: fields({ identityFiles: [], strictHostKeyChecking: 'accept-new' }) }]);
+    expect(empty.serialize()).toBe('Host new-host\n    HostName example.com\n    User git\n    IdentitiesOnly yes\n    StrictHostKeyChecking accept-new\n');
+  });
+
+  it('removes the line when cleared, but never deletes a value it does not understand', () => {
+    const doc = SshConfigDocument.parse('Host a\n    HostName a.example\n    StrictHostKeyChecking no\nHost b\n    StrictHostKeyChecking %weird\n');
+    const base = { user: null, identityFiles: [], identitiesOnly: null, strictHostKeyChecking: null };
+    doc.applyEdits([
+      { op: 'update', index: 0, fields: fields({ ...base, patterns: ['a'], hostName: 'a.example' }) },
+      { op: 'update', index: 1, fields: fields({ ...base, patterns: ['b'], hostName: null }) }
+    ]);
+    expect(doc.serialize()).toBe('Host a\n    HostName a.example\nHost b\n    StrictHostKeyChecking %weird\n');
   });
 });

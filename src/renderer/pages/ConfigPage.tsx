@@ -17,9 +17,10 @@ import {
   tokens
 } from '@fluentui/react-components';
 import { Add20Regular, Delete20Regular, DocumentTextRegular, Save20Regular } from '@fluentui/react-icons';
-import type { ConfigPreview, ConfigSnapshot, HostEdit, HostEntry, HostFields, KeyInfo, SkmErrorData } from '../../core/types';
-import { t } from '../i18n/t';
+import type { ConfigPreview, ConfigSnapshot, HostEdit, HostEntry, HostFields, KeyInfo, SkmErrorData, StrictHostKeyChecking } from '../../core/types';
+import { t, type MessageKey } from '../i18n/t';
 import { api, call, errorData } from '../lib/api';
+import { HOST_PRESETS, applyPreset } from '../lib/hostPresets';
 import { EmptyState, ErrorCard, useNotify } from '../components/common';
 import { DiffDialog } from '../components/DiffDialog';
 
@@ -62,7 +63,9 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: tokens.spacingVerticalM,
     overflow: 'auto',
-    boxSizing: 'border-box'
+    boxSizing: 'border-box',
+    // Children must keep their natural height; otherwise a long note shrinks and the next field overlaps it.
+    '> *': { flexShrink: 0 }
   },
   grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacingHorizontalM, alignItems: 'start' },
   actions: { display: 'flex', gap: tokens.spacingHorizontalS },
@@ -78,9 +81,10 @@ interface FormState {
   identityFile: string;
   extraIdentityFiles: string[];
   identitiesOnly: '' | 'yes' | 'no';
+  strictHostKeyChecking: '' | StrictHostKeyChecking;
 }
 
-const EMPTY_FORM: FormState = { patterns: '', hostName: '', user: '', port: '', identityFile: '', extraIdentityFiles: [], identitiesOnly: '' };
+const EMPTY_FORM: FormState = { patterns: '', hostName: '', user: '', port: '', identityFile: '', extraIdentityFiles: [], identitiesOnly: '', strictHostKeyChecking: '' };
 
 function formFromHost(h: HostEntry): FormState {
   return {
@@ -90,7 +94,8 @@ function formFromHost(h: HostEntry): FormState {
     port: h.port === null ? '' : String(h.port),
     identityFile: h.identityFiles[0] ?? '',
     extraIdentityFiles: h.identityFiles.slice(1),
-    identitiesOnly: h.identitiesOnly ?? ''
+    identitiesOnly: h.identitiesOnly ?? '',
+    strictHostKeyChecking: h.strictHostKeyChecking ?? ''
   };
 }
 
@@ -101,9 +106,22 @@ function fieldsFromForm(f: FormState): HostFields {
     user: f.user.trim() || null,
     port: f.port.trim() ? Number(f.port) : null,
     identityFiles: [f.identityFile, ...f.extraIdentityFiles].filter(Boolean),
-    identitiesOnly: f.identitiesOnly || null
+    identitiesOnly: f.identitiesOnly || null,
+    strictHostKeyChecking: f.strictHostKeyChecking || null
   };
 }
+
+const STRICT_LABELS: Record<StrictHostKeyChecking, () => string> = {
+  'accept-new': () => t('config.strict.acceptNew'),
+  yes: () => t('config.strict.yes'),
+  ask: () => t('config.strict.ask'),
+  no: () => t('config.strict.no'),
+  off: () => t('config.strict.no')
+};
+
+const STRICT_OPTIONS: StrictHostKeyChecking[] = ['accept-new', 'yes', 'ask', 'no'];
+// "off" (alias of "no") is only offered when the file already uses it, so the dropdown can show it.
+const STRICT_OPTIONS_WITH_OFF: StrictHostKeyChecking[] = [...STRICT_OPTIONS, 'off'];
 
 /** "id_ed25519_github" -> "github" as a suggested Host alias. */
 function suggestAlias(keyId: string): string {
@@ -117,6 +135,7 @@ export function ConfigPage(props: { refreshSignal: number; draftKeyId: string | 
   const [keys, setKeys] = useState<{ key: KeyInfo; ref: string }[]>([]);
   const [selected, setSelected] = useState<number | 'new' | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [presetId, setPresetId] = useState<string>('');
   const [tab, setTab] = useState<'form' | 'raw'>('form');
   const [pending, setPending] = useState<{ edits: HostEdit[]; preview: ConfigPreview } | null>(null);
   const [error, setError] = useState<SkmErrorData | null>(null);
@@ -156,6 +175,7 @@ export function ConfigPage(props: { refreshSignal: number; draftKeyId: string | 
   const hosts = snap?.hosts ?? [];
   const current = typeof selected === 'number' ? (hosts[selected] ?? null) : null;
   const isMatch = current?.kind === 'match';
+  const preset = HOST_PRESETS.find((p) => p.id === presetId) ?? null;
   const portInvalid = form.port.trim() !== '' && !/^\d{1,5}$/.test(form.port.trim());
   const identityOptions = useMemo(() => {
     const opts = keys.map((k) => ({ value: k.ref, label: k.key.id }));
@@ -166,6 +186,7 @@ export function ConfigPage(props: { refreshSignal: number; draftKeyId: string | 
   const select = (idx: number | 'new'): void => {
     setSelected(idx);
     setError(null);
+    setPresetId('');
     setForm(idx === 'new' ? EMPTY_FORM : formFromHost(hosts[idx] as HostEntry));
   };
 
@@ -268,15 +289,42 @@ export function ConfigPage(props: { refreshSignal: number; draftKeyId: string | 
               </MessageBar>
             ) : (
               <>
+                {selected === 'new' ? (
+                  <Field label={t('config.preset')} hint={t('config.presetHint')}>
+                    <Dropdown
+                      value={preset?.label ?? ''}
+                      placeholder={t('config.presetPick')}
+                      selectedOptions={presetId ? [presetId] : []}
+                      onOptionSelect={(_e, d) => {
+                        const p = HOST_PRESETS.find((x) => x.id === d.optionValue);
+                        if (!p) return;
+                        setPresetId(p.id);
+                        setForm((f) => applyPreset(f, p, preset));
+                      }}
+                      data-testid="cfg-preset"
+                    >
+                      {HOST_PRESETS.map((p) => (
+                        <Option key={p.id} value={p.id} text={p.label}>
+                          {p.label}
+                        </Option>
+                      ))}
+                    </Dropdown>
+                  </Field>
+                ) : null}
+                {selected === 'new' && preset?.hasNote ? (
+                  <MessageBar intent="info" layout="multiline" data-testid="cfg-preset-note">
+                    <MessageBarBody>{t(`config.presetNote.${preset.id}` as MessageKey)}</MessageBarBody>
+                  </MessageBar>
+                ) : null}
                 <Field label={t('config.patterns')} required>
                   <Input value={form.patterns} onChange={(_e, d) => set('patterns', d.value)} data-testid="cfg-patterns" autoFocus={selected === 'new'} />
                 </Field>
                 <div className={s.grid}>
                   <Field label={t('config.hostName')}>
-                    <Input value={form.hostName} onChange={(_e, d) => set('hostName', d.value)} placeholder="github.com" data-testid="cfg-hostname" />
+                    <Input value={form.hostName} onChange={(_e, d) => set('hostName', d.value)} placeholder={preset?.hostNamePlaceholder ?? 'github.com'} data-testid="cfg-hostname" />
                   </Field>
                   <Field label={t('config.user')}>
-                    <Input value={form.user} onChange={(_e, d) => set('user', d.value)} placeholder="git" data-testid="cfg-user" />
+                    <Input value={form.user} onChange={(_e, d) => set('user', d.value)} placeholder={preset?.userPlaceholder ?? 'git'} data-testid="cfg-user" />
                   </Field>
                   <Field label={t('config.port')} validationState={portInvalid ? 'error' : 'none'} validationMessage={portInvalid ? t('config.portInvalid') : undefined}>
                     <Input value={form.port} onChange={(_e, d) => set('port', d.value)} placeholder="22" data-testid="cfg-port" />
@@ -293,6 +341,28 @@ export function ConfigPage(props: { refreshSignal: number; draftKeyId: string | 
                     </Dropdown>
                   </Field>
                 </div>
+                <Field
+                  label={t('config.strict')}
+                  hint={form.strictHostKeyChecking === 'no' || form.strictHostKeyChecking === 'off' ? undefined : t('config.strictHint')}
+                  validationState={form.strictHostKeyChecking === 'no' || form.strictHostKeyChecking === 'off' ? 'warning' : 'none'}
+                  validationMessage={form.strictHostKeyChecking === 'no' || form.strictHostKeyChecking === 'off' ? t('config.strictNoWarn') : undefined}
+                >
+                  <Dropdown
+                    value={form.strictHostKeyChecking ? STRICT_LABELS[form.strictHostKeyChecking]() : t('config.unset')}
+                    selectedOptions={[form.strictHostKeyChecking]}
+                    onOptionSelect={(_e, d) => set('strictHostKeyChecking', (d.optionValue ?? '') as FormState['strictHostKeyChecking'])}
+                    data-testid="cfg-strict"
+                  >
+                    <Option value="" text={t('config.unset')}>
+                      {t('config.unset')}
+                    </Option>
+                    {(form.strictHostKeyChecking === 'off' ? STRICT_OPTIONS_WITH_OFF : STRICT_OPTIONS).map((v) => (
+                      <Option key={v} value={v} text={STRICT_LABELS[v]()}>
+                        {STRICT_LABELS[v]()}
+                      </Option>
+                    ))}
+                  </Dropdown>
+                </Field>
                 <Field label={t('config.identityFile')} hint={form.extraIdentityFiles.length ? t('config.identityOthers', { files: form.extraIdentityFiles.join(', ') }) : undefined}>
                   <Dropdown
                     value={identityOptions.find((o) => o.value === form.identityFile)?.label ?? t('config.identityNone')}

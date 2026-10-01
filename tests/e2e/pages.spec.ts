@@ -143,6 +143,22 @@ for (const theme of ['light', 'dark'] as const) {
       await expect(page.getByTestId('config-raw')).toHaveValue(/User deploy/);
       await shot(page, `config-raw-${theme}`);
 
+      // Service presets fill the form; AWS ones explain what the user must fill in.
+      await page.getByRole('tab', { name: 'Form' }).click();
+      await page.getByTestId('config-add').click();
+      await page.getByTestId('cfg-preset').click();
+      await page.getByRole('option', { name: 'GitHub (port 443)' }).click();
+      await expect(page.getByTestId('cfg-patterns')).toHaveValue('github.com');
+      await expect(page.getByTestId('cfg-hostname')).toHaveValue('ssh.github.com');
+      await expect(page.getByTestId('cfg-port')).toHaveValue('443');
+      await page.getByTestId('cfg-preset').click();
+      await page.getByRole('option', { name: 'AWS CodeCommit' }).click();
+      await expect(page.getByTestId('cfg-hostname')).toHaveValue('');
+      await expect(page.getByTestId('cfg-patterns')).toHaveValue('aws-codecommit');
+      await expect(page.getByTestId('cfg-hostname')).toHaveAttribute('placeholder', /git-codecommit\..+\.amazonaws\.com/);
+      await expect(page.getByTestId('cfg-preset-note')).toContainText('SSH Key ID');
+      await shot(page, `config-preset-${theme}`);
+
       // Connection test against the closed local port
       await page.getByTestId('nav-test').click();
       await page.getByTestId('test-host').fill('work');

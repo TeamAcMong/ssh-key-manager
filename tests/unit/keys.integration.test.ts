@@ -94,7 +94,7 @@ describe('key actions', () => {
     await keys.setMeta('id_ecdsa_t', ['github', 'work'], 'ghi chú');
     const cfg = new ConfigStore(sb.ctx);
     const snap = await cfg.read();
-    await cfg.write([{ op: 'add', fields: { patterns: ['gh'], hostName: 'github.com', user: 'git', port: null, identityFiles: [identityFileRef(sb.sshDir, 'C:/not-default', 'id_ecdsa_t')], identitiesOnly: 'yes' } }], snap.hash);
+    await cfg.write([{ op: 'add', fields: { patterns: ['gh'], hostName: 'github.com', user: 'git', port: null, identityFiles: [identityFileRef(sb.sshDir, 'C:/not-default', 'id_ecdsa_t')], identitiesOnly: 'yes', strictHostKeyChecking: null } }], snap.hash);
 
     const res = await keys.rename('id_ecdsa_t', 'id_ecdsa_renamed');
     expect(res.key).toMatchObject({ id: 'id_ecdsa_renamed', fingerprint: before.fingerprint, tags: ['github', 'work'] });

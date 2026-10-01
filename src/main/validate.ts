@@ -1,5 +1,5 @@
 // Runtime validation of every IPC argument. No electron import so it can be unit-tested.
-import type { GenerateKeyRequest, HostEdit, HostFields, Settings } from '../core/types';
+import { STRICT_HOST_KEY_CHECKING, type GenerateKeyRequest, type HostEdit, type HostFields, type Settings } from '../core/types';
 import { SkmError } from '../core/errors/SkmError';
 
 const fail = (what: string): never => {
@@ -74,6 +74,8 @@ function hostFields(v: unknown): HostFields {
   }
   const io = o.identitiesOnly;
   if (io !== null && io !== 'yes' && io !== 'no') fail('IdentitiesOnly');
+  const shkc = o.strictHostKeyChecking;
+  if (shkc !== null && !(STRICT_HOST_KEY_CHECKING as readonly unknown[]).includes(shkc)) fail('StrictHostKeyChecking');
   // Semantic validation (allowed characters, ranges) happens in core's validateHostFields.
   return {
     patterns: stringArray(o.patterns, 'host pattern', 20, 255),
@@ -81,7 +83,8 @@ function hostFields(v: unknown): HostFields {
     user: nullableStr(o.user, 'User'),
     port,
     identityFiles: stringArray(o.identityFiles, 'IdentityFile', 20, 1024),
-    identitiesOnly: io as HostFields['identitiesOnly']
+    identitiesOnly: io as HostFields['identitiesOnly'],
+    strictHostKeyChecking: shkc as HostFields['strictHostKeyChecking']
   };
 }
 

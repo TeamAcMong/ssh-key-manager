@@ -28,11 +28,13 @@ describe('IPC input validation (main)', () => {
   });
 
   it('validates host edits and timeouts', () => {
-    const fields = { patterns: ['h'], hostName: null, user: null, port: 22, identityFiles: [], identitiesOnly: 'yes' };
+    const fields = { patterns: ['h'], hostName: null, user: null, port: 22, identityFiles: [], identitiesOnly: 'yes', strictHostKeyChecking: 'accept-new' };
     expect(v.hostEdits([{ op: 'add', fields }, { op: 'delete', index: 1 }])).toHaveLength(2);
     expect(() => v.hostEdits([{ op: 'update', index: 1.5, fields }])).toThrow();
     expect(() => v.hostEdits([{ op: 'rm', index: 0 }])).toThrow();
     expect(() => v.hostEdits([{ op: 'add', fields: { ...fields, identitiesOnly: 'maybe' } }])).toThrow();
+    expect(() => v.hostEdits([{ op: 'add', fields: { ...fields, strictHostKeyChecking: 'sometimes' } }])).toThrow();
+    expect(() => v.hostEdits([{ op: 'add', fields: { patterns: ['h'], hostName: null, user: null, port: null, identityFiles: [], identitiesOnly: null } }])).toThrow();
     expect(v.timeoutSec(10)).toBe(10);
     expect(() => v.timeoutSec(0)).toThrow();
     expect(() => v.timeoutSec(1000)).toThrow();
