@@ -41,7 +41,7 @@ Các interface hiện có (`PlatformPaths`, `FilePermissionService`, `AgentServi
 
 | Ưu tiên | Việc | Ghi chú |
 |---|---|---|
-| P1 | Trang quản lý `known_hosts` + `ssh-keyscan` | Đây là cách sửa trực tiếp cho lỗi "Host key verification failed" mà trang Test đang báo. |
+| P1 | Trang quản lý `known_hosts` (xem, xoá dòng cũ khi máy chủ đổi key) | Phần thêm host key mới đã có từ v0.1.3: tự xác minh GitHub/GitLab/Bitbucket, xác nhận thủ công cho host khác, hoặc `StrictHostKeyChecking accept-new`. Còn thiếu cách xử lý lỗi "host key đã thay đổi". |
 | P1 | Copy public key lên server (thay cho `ssh-copy-id`) | Đây là cách sửa trực tiếp cho lỗi "Permission denied (publickey)". |
 | P2 | Chỉnh sửa `authorized_keys` trên máy chủ từ xa | |
 | P2 | Hỗ trợ `ProxyJump` trong form Config | |

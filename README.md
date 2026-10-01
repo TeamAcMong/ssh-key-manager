@@ -16,9 +16,12 @@
 | Phát hiện private key có quyền file (ACL) không an toàn và sửa bằng một cú bấm | Banner "Sửa tất cả" | `skm fix-perms` |
 | Service ssh-agent của Windows: xem trạng thái, khởi động, thêm và gỡ key | Trang **ssh-agent** | `skm agent …` |
 | Sửa `~/.ssh/config`: thêm, sửa, xoá khối Host; giữ nguyên comment và các dòng khác; **xem diff trước khi ghi** | Trang **Config** | `skm config …` |
+| Mẫu dịch vụ điền sẵn HostName/User/Port: GitHub, GitLab, Bitbucket (cả bản port 443), Azure DevOps, AWS CodeCommit, AWS EC2, Codeberg, Hugging Face, VPS; kèm hướng dẫn các giá trị phải tự điền (region, SSH Key ID, DNS của instance…) | Trang **Config** → Thêm Host | — |
+| `StrictHostKeyChecking accept-new` cho từng Host: lần đầu kết nối ssh tự thêm host key vào known_hosts, key bị đổi thì vẫn chặn | Trang **Config** (mẫu dịch vụ chọn sẵn) | `skm config add/set --strict-host-key-checking accept-new` |
 | Kiểm tra kết nối `ssh -T -o BatchMode=yes`, giải thích lỗi bằng tiếng Việt | Trang **Kiểm tra kết nối** | `skm test` |
+| Host chưa có trong known_hosts: GitHub/GitLab/Bitbucket được đối chiếu với fingerprint công bố rồi **tự thêm**; host khác hiện fingerprint để bạn xác nhận. Luôn sao lưu `known_hosts.<thời gian>.bak` trước khi ghi | Trang **Kiểm tra kết nối** | — |
 
-Các tính năng sẽ làm sau (FIDO2, known_hosts, upload key lên GitHub/GitLab, installer…) chưa có trong phase 1.
+Các tính năng sẽ làm sau (FIDO2, upload key lên GitHub/GitLab, installer…) chưa có trong phase 1.
 
 ## Yêu cầu
 
@@ -84,7 +87,7 @@ node out/node/cli/index.js --ssh-dir .\sandbox-ssh list
 | `skm agent add <key> [--passphrase-stdin]` | Thêm key vào agent |
 | `skm agent remove <key \| SHA256:…>` | Gỡ key khỏi agent |
 | `skm config list \| show` | Xem các khối Host, hoặc nội dung nguyên văn của file |
-| `skm config add <alias> [--hostname] [--user] [--port] [--identity <key>] [--identities-only yes\|no] [-y]` | Thêm khối Host |
+| `skm config add <alias> [--hostname] [--user] [--port] [--identity <key>] [--identities-only yes\|no] [--strict-host-key-checking accept-new\|yes\|ask\|no] [-y]` | Thêm khối Host |
 | `skm config set <alias> …` / `skm config rm <alias>` | Sửa hoặc xoá khối Host (truyền `""` để xoá một dòng) |
 | `skm test <host> [--timeout giây]` | Kiểm tra kết nối |
 
@@ -149,7 +152,8 @@ npm run e2e         # Playwright + Electron: mở từng trang, chụp ảnh và
 - **Không ghi passphrase hay private key vào log hoặc thông báo lỗi.** Chi tiết lỗi được redact (che các khối `PRIVATE KEY` và các secret đã biết). Log IPC chỉ ghi tên kênh và mã lỗi, không ghi payload.
 - **Kiểm tra mọi dữ liệu IPC trong main.** Đường dẫn phải nằm trong thư mục SSH đã chọn; host truyền cho `ssh` không được bắt đầu bằng `-`.
 - **Quyền file:** sau khi tạo hoặc import private key, app đặt ACL chỉ cho tài khoản hiện tại, bằng `icacls /inheritance:r /grant:r` và gỡ thêm các quyền cấp riêng cho người khác.
-- **Sao lưu và xác nhận:** trước mỗi lần ghi `config`, app sao lưu thành `config.<thời gian>.bak`. Xoá key hoặc ghi config đều cần xác nhận (hộp thoại native, diff, hoặc cờ `--yes`).
+- **Host key:** app lấy host key bằng chính `ssh` vào một file known_hosts tạm, chỉ đề nghị phương thức xác thực `none`, nên không gửi key hay mật khẩu nào. Chỉ tự thêm khi khớp fingerprint mà GitHub/GitLab/Bitbucket công bố; không khớp thì từ chối (nghi tấn công xen giữa). Lời chào ẩn danh của Hugging Face (`Hi anonymous`) không được tính là đăng nhập thành công.
+- **Sao lưu và xác nhận:** trước mỗi lần ghi `config` hoặc `known_hosts`, app sao lưu thành `<tên file>.<thời gian>.bak`. Xoá key hoặc ghi config đều cần xác nhận (hộp thoại native, diff, hoặc cờ `--yes`).
 - **Không dùng shell:** mọi lệnh ngoài chạy bằng `spawn` với mảng tham số và `shell: false`.
 - **Metadata không chứa key:** file metadata (`metadata.json`) chỉ chứa tag và ghi chú, gắn theo fingerprint. Ghi chú nào có dạng private key sẽ bị từ chối.
 
@@ -180,6 +184,7 @@ docs/screenshots   ảnh chụp từ e2e
 | Config | ![](docs/screenshots/config-light.png) | ![](docs/screenshots/config-dark.png) |
 | Config: diff trước khi ghi | ![](docs/screenshots/config-diff-light.png) | ![](docs/screenshots/config-diff-dark.png) |
 | Config: tab Raw | ![](docs/screenshots/config-raw-light.png) | ![](docs/screenshots/config-raw-dark.png) |
+| Config: mẫu dịch vụ | ![](docs/screenshots/config-preset-light.png) | ![](docs/screenshots/config-preset-dark.png) |
 | Kiểm tra kết nối | ![](docs/screenshots/test-light.png) | ![](docs/screenshots/test-dark.png) |
 | Cài đặt | ![](docs/screenshots/settings-light.png) | ![](docs/screenshots/settings-dark.png) |
 | Cửa sổ nhỏ nhất, DPI 150% / 200% | ![](docs/screenshots/keys-min-150pct.png) | ![](docs/screenshots/keys-min-200pct.png) |
