@@ -15,6 +15,12 @@ export function optStr(v: unknown, what: string, max = 4096): string | undefined
   return v === undefined ? undefined : str(v, what, max);
 }
 
+export function optBool(v: unknown, what: string): boolean | undefined {
+  if (v === undefined || v === null) return undefined;
+  if (typeof v !== 'boolean') fail(what);
+  return v as boolean;
+}
+
 export function keyId(v: unknown): string {
   const s = str(v, 'key id', 255);
   if (!s || /[\\/:\0]/.test(s) || s === '.' || s === '..') fail('key id');

@@ -1,5 +1,5 @@
 // SSH_ASKPASS helper. OpenSSH runs it with the prompt as argv; it asks the SSH Key Manager
-// process for the answer over the named pipe given in SKM_ASKPASS_PIPE and prints it on stdout.
+// process for the answer over the named pipe / unix socket in SKM_ASKPASS_PIPE and prints it on stdout.
 // It never logs anything and exits non-zero (= "cancelled") on any problem.
 'use strict';
 const net = require('node:net');

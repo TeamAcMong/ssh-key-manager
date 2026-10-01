@@ -2,6 +2,17 @@ import type { AclReport, AgentServiceStatus, AgentStartResult } from '../types';
 
 export type OpenSshTool = 'ssh' | 'ssh-keygen' | 'ssh-add';
 
+/** Static facts about the platform that callers branch on (instead of checking process.platform). */
+export interface PlatformInfo {
+  os: 'windows' | 'macos';
+  /** File name of the SSH_ASKPASS helper inside resources/askpass. */
+  askpassHelper: string;
+  /** ssh-add can store the passphrase in the OS keychain (Apple's `--apple-use-keychain`). */
+  agentKeychain: boolean;
+  /** Vietnamese hint shown when no OpenSSH client is found. */
+  openSshMissingHint: string;
+}
+
 export interface PlatformPaths {
   defaultSshDir(): string;
   /** Directory for settings.json and metadata.json (shared by GUI and CLI). */
@@ -28,6 +39,7 @@ export interface AgentService {
 }
 
 export interface Platform {
+  info: PlatformInfo;
   paths: PlatformPaths;
   permissions: FilePermissionService;
   agentService: AgentService;

@@ -9,9 +9,12 @@ import { passphraseAnswerer } from '../process/AskpassBroker';
 import { parseFingerprintList, parsePublicKeyLine } from '../keys/fingerprint';
 import { validatePassphrase } from '../keys/KeyService';
 
-/** ssh-add wrapper. Note: the Windows agent persists added keys in the registry (HKCU) across reboots. */
+/**
+ * ssh-add wrapper. The Windows agent persists added keys in the registry (HKCU) across reboots; the
+ * macOS agent forgets them at logout unless the passphrase is stored in the Keychain.
+ */
 export class AgentKeys {
-  constructor(private readonly ctx: Pick<CoreContext, 'bin' | 'run' | 'askpass'>) {}
+  constructor(private readonly ctx: Pick<CoreContext, 'bin' | 'run' | 'askpass' | 'platform'>) {}
 
   async list(): Promise<AgentKey[]> {
     const r = await this.ctx.run(this.ctx.bin.add, ['-l', '-E', 'sha256'], { timeoutMs: 10_000 });
@@ -22,11 +25,18 @@ export class AgentKeys {
     throw processFailed('ssh-add', r.code, r.stderr || r.stdout);
   }
 
-  /** `passphrase` is used only if ssh-add asks for it (encrypted key). */
-  async add(privateKeyPath: string, passphrase?: string): Promise<void> {
+  /**
+   * `passphrase` is used only if ssh-add asks for it (encrypted key). `useKeychain` (macOS only) also
+   * stores the passphrase in the login Keychain, so the key can be reloaded after a reboot without asking.
+   */
+  async add(privateKeyPath: string, passphrase?: string, opts: { useKeychain?: boolean } = {}): Promise<void> {
     if (passphrase !== undefined) validatePassphrase(passphrase, true);
+    if (opts.useKeychain && !this.ctx.platform.info.agentKeychain) {
+      throw new SkmError('INVALID_INPUT', 'Lưu passphrase vào Keychain chỉ có trên macOS.');
+    }
+    const args = opts.useKeychain ? ['--apple-use-keychain', privateKeyPath] : [privateKeyPath];
     const r = await this.ctx.askpass.withAnswers(passphraseAnswerer({ current: passphrase }), (env) =>
-      this.ctx.run(this.ctx.bin.add, [privateKeyPath], { timeoutMs: 30_000, env })
+      this.ctx.run(this.ctx.bin.add, args, { timeoutMs: 30_000, env })
     );
     if (r.code === 0) return;
     const out = r.stderr || r.stdout;

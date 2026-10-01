@@ -15,7 +15,8 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "cli": "node out/node/cli/index.js",
-    "dist": "npm run build && electron-builder --win portable --x64"
+    "dist": "npm run build && electron-builder --win portable --x64",
+    "dist:mac": "npm run build && electron-builder --mac dmg --arm64 --x64"
   },
   "dependencies": {
     "@fluentui/react-components": "^9.74.9",
@@ -72,6 +73,24 @@
     },
     "portable": {
       "artifactName": "SSH-Key-Manager-${version}-portable.exe"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.developer-tools",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "artifactName": "SSH-Key-Manager-${version}-${arch}.dmg"
     }
   }
 }

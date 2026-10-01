@@ -1,15 +1,13 @@
-// Runs the real ssh-keygen / icacls against a throwaway directory under .tmp-test/.
+// Runs the real ssh-keygen and the platform's permission tools against a throwaway directory under .tmp-test/.
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createSandbox, type Sandbox } from './helpers';
+import { createSandbox, makeWorldReadable, type Sandbox } from './helpers';
 import { KeyService } from '../../src/core/keys/KeyService';
 import { ConfigStore, identityFileRef } from '../../src/core/config/ConfigStore';
 import { ConnectionTester } from '../../src/core/test/ConnectionTester';
 import { AgentKeys } from '../../src/core/agent/AgentKeys';
-import { runProcess } from '../../src/core/process/ProcessRunner';
 
-const ICACLS = path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'icacls.exe');
 const PASS = 'correct horse battery 42';
 const PASS2 = 'another-passphrase-99';
 
@@ -106,10 +104,9 @@ describe('key actions', () => {
     expect(meta).not.toMatch(/PRIVATE KEY|AAAA/);
   });
 
-  it('detects and fixes an unsafe ACL, including explicit entries for other principals', async () => {
+  it('detects and fixes unsafe permissions, including explicit entries for other principals', async () => {
     const file = path.join(sb.sshDir, 'id_rsa_t');
-    const r = await runProcess(ICACLS, [file, '/grant', '*S-1-1-0:(R)']); // Everyone, by SID (locale-independent)
-    expect(r.code).toBe(0);
+    await makeWorldReadable(file);
     expect((await keys.list()).find((k) => k.id === 'id_rsa_t')?.aclSafe).toBe(false);
     const [report] = await keys.fixPermissions(['id_rsa_t']);
     expect(report?.safe).toBe(true);

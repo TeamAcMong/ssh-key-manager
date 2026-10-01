@@ -31,15 +31,27 @@ export async function createSandbox(): Promise<Sandbox> {
     calls.push({ bin, args: [...args], env: opts?.env });
     return runProcess(bin, args, opts);
   };
+  const platform = createPlatform(recordingRun);
   const ctx = await createContext({
     sshDir,
     binDir: null,
     run: recordingRun,
-    platform: createPlatform(recordingRun),
-    askpass: { helperPath: path.join(REPO, 'resources', 'askpass', 'askpass.cmd'), nodeExe: process.execPath, nodeEnv: {} }
+    platform,
+    askpass: { helperPath: path.join(REPO, 'resources', 'askpass', platform.info.askpassHelper), nodeExe: process.execPath, nodeEnv: {} }
   });
   if (path.resolve(ctx.sshDir).toLowerCase() === path.join(os.homedir(), '.ssh').toLowerCase()) {
     throw new Error('Refusing to run tests against the real ~/.ssh');
   }
   return { root, sshDir, appData, ctx, calls, cleanup: () => fs.rm(root, { recursive: true, force: true }) };
+}
+
+/** Makes a private key readable by everyone, which OpenSSH refuses: Everyone ACE on Windows, chmod 644 on macOS. */
+export async function makeWorldReadable(file: string): Promise<void> {
+  if (process.platform === 'win32') {
+    const icacls = path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'icacls.exe');
+    const r = await runProcess(icacls, [file, '/grant', '*S-1-1-0:(R)']); // Everyone, by SID (locale-independent)
+    if (r.code !== 0) throw new Error(`icacls failed: ${r.stderr}`);
+  } else {
+    await fs.chmod(file, 0o644);
+  }
 }

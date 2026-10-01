@@ -32,12 +32,13 @@ describe('SSH dir is created when missing', () => {
   it('createContext on a missing dir lets the key list start empty instead of failing', async () => {
     process.env.SKM_APPDATA_DIR = path.join(root, 'appdata');
     const dir = path.join(root, 'fresh', '.ssh');
+    const platform = createPlatform(runProcess);
     const ctx = await createContext({
       sshDir: dir,
       binDir: null,
       run: runProcess,
-      platform: createPlatform(runProcess),
-      askpass: { helperPath: path.join(REPO, 'resources', 'askpass', 'askpass.cmd'), nodeExe: process.execPath, nodeEnv: {} }
+      platform,
+      askpass: { helperPath: path.join(REPO, 'resources', 'askpass', platform.info.askpassHelper), nodeExe: process.execPath, nodeEnv: {} }
     });
     expect(await new KeyService(ctx).list()).toEqual([]);
   });

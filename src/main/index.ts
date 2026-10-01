@@ -44,7 +44,9 @@ app.on('web-contents-created', (_e, contents) => {
 });
 
 app.whenReady().then(async () => {
-  Menu.setApplicationMenu(null);
+  // Windows: no menu bar. macOS: the Edit menu is what makes Cmd+C/V/X/A/Z work in text fields, and the app
+  // menu provides Cmd+Q; no View menu, so reload/devtools stay unavailable in production.
+  Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]) : null);
   const ses = session.defaultSession;
   ses.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
   ses.setPermissionCheckHandler(() => false);

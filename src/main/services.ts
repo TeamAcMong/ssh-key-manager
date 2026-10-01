@@ -50,10 +50,10 @@ export class AppServices {
       run: runProcess,
       platform: this.platform,
       askpass: {
-        // Packaged: electron-builder copies the helper next to app.asar (a .cmd inside an asar cannot run).
+        // Packaged: electron-builder copies the helper next to app.asar (a script inside an asar cannot run).
         helperPath: app.isPackaged
-          ? path.join(process.resourcesPath, 'askpass', 'askpass.cmd')
-          : path.join(app.getAppPath(), 'resources', 'askpass', 'askpass.cmd'),
+          ? path.join(process.resourcesPath, 'askpass', this.platform.info.askpassHelper)
+          : path.join(app.getAppPath(), 'resources', 'askpass', this.platform.info.askpassHelper),
         nodeExe: process.execPath,
         nodeEnv: { ELECTRON_RUN_AS_NODE: '1' }
       }

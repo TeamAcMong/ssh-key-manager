@@ -17,7 +17,7 @@ export interface Runtime {
 }
 
 // out/node/cli/*.js -> repo root (resources/ sits next to out/).
-const ASKPASS = path.resolve(__dirname, '..', '..', '..', 'resources', 'askpass', 'askpass.cmd');
+const ASKPASS_DIR = path.resolve(__dirname, '..', '..', '..', 'resources', 'askpass');
 
 export async function createRuntime(opts: GlobalOptions): Promise<Runtime> {
   const platform = createPlatform(runProcess);
@@ -30,7 +30,7 @@ export async function createRuntime(opts: GlobalOptions): Promise<Runtime> {
     binDir: settings.binDir,
     run: runProcess,
     platform,
-    askpass: { helperPath: ASKPASS, nodeExe: process.execPath, nodeEnv: {} }
+    askpass: { helperPath: path.join(ASKPASS_DIR, platform.info.askpassHelper), nodeExe: process.execPath, nodeEnv: {} }
   });
   return { ctx, platform, tmpDir: path.join(platform.paths.appDataDir(), 'tmp') };
 }

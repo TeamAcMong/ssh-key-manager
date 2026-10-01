@@ -35,7 +35,7 @@ const api: SkmApi = {
     start: () => invoke(CH.agentStart),
     enableAsAdmin: () => invoke(CH.agentEnableAsAdmin),
     list: () => invoke(CH.agentList),
-    add: (id, pass) => invoke(CH.agentAdd, id, pass),
+    add: (id, pass, useKeychain) => invoke(CH.agentAdd, id, pass, useKeychain),
     remove: (fp) => invoke(CH.agentRemove, fp)
   },
   config: {
@@ -53,7 +53,8 @@ const api: SkmApi = {
     trustHostKey: (host, fps) => invoke(CH.testTrustHostKey, host, fps)
   },
   clipboard: { copyText: (text) => invoke(CH.clipboardCopy, text) },
-  pathForFile: (file) => webUtils.getPathForFile(file)
+  pathForFile: (file) => webUtils.getPathForFile(file),
+  platform: process.platform
 };
 
 contextBridge.exposeInMainWorld('skm', api);

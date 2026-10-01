@@ -106,7 +106,7 @@ export function registerIpc(services: AppServices, isTrusted: (e: IpcMainInvokeE
   h(CH.agentList, async () => s.agent.list());
   h(
     CH.agentAdd,
-    async (_e, id, pass) => s.agent.add(await s.keys.privateKeyPath(v.keyId(id)), v.optStr(pass, 'passphrase', 1024)),
+    async (_e, id, pass, useKeychain) => s.agent.add(await s.keys.privateKeyPath(v.keyId(id)), v.optStr(pass, 'passphrase', 1024), { useKeychain: v.optBool(useKeychain, 'useKeychain') }),
     (a) => [a[1] as string]
   );
   h(CH.agentRemove, async (_e, fp) => {

@@ -58,7 +58,8 @@ export interface SkmApi {
     start(): Promise<Result<AgentStartResult>>;
     enableAsAdmin(): Promise<Result<AgentServiceStatus>>;
     list(): Promise<Result<AgentKey[]>>;
-    add(id: string, passphrase?: string): Promise<Result<void>>;
+    /** useKeychain: macOS only, stores the passphrase in the login Keychain (ssh-add --apple-use-keychain). */
+    add(id: string, passphrase?: string, useKeychain?: boolean): Promise<Result<void>>;
     remove(fingerprint: string): Promise<Result<void>>;
   };
   config: {
@@ -81,6 +82,8 @@ export interface SkmApi {
   };
   /** Absolute path of a dropped File (Electron webUtils). */
   pathForFile(file: File): string;
+  /** process.platform of the app ('win32' | 'darwin'): shortcuts and wording differ per OS. */
+  platform: string;
 }
 
 export const CH = {

@@ -36,7 +36,7 @@ export async function ensureSshDir(dir: string): Promise<void> {
 export async function createContext(opts: CreateContextOptions): Promise<CoreContext> {
   const binDir = opts.binDir ?? (await opts.platform.paths.findOpenSshBinDir());
   if (!binDir) {
-    throw new SkmError('BINARY_NOT_FOUND', 'Không tìm thấy OpenSSH (ssh-keygen.exe). Hãy cài "OpenSSH Client" của Windows hoặc chọn đường dẫn trong Cài đặt.');
+    throw new SkmError('BINARY_NOT_FOUND', opts.platform.info.openSshMissingHint);
   }
   const guard = new PathGuard(opts.sshDir);
   await ensureSshDir(guard.root);

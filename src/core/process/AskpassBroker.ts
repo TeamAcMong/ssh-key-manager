@@ -5,9 +5,9 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 export type AnswerFn = (prompt: string) => string | null;
 
 export interface AskpassConfig {
-  /** Absolute path to resources/askpass/askpass.cmd. */
+  /** Absolute path to the helper in resources/askpass (askpass.cmd on Windows, askpass.sh on macOS). */
   helperPath: string;
-  /** Executable that runs askpass.js (node.exe, or electron.exe with ELECTRON_RUN_AS_NODE). */
+  /** Executable that runs askpass.js (node, or the Electron binary with ELECTRON_RUN_AS_NODE). */
   nodeExe: string;
   /** Extra env for the helper runtime, e.g. { ELECTRON_RUN_AS_NODE: '1' }. */
   nodeEnv: Record<string, string>;
