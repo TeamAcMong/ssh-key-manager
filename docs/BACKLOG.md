@@ -16,6 +16,7 @@ Các interface hiện có (`PlatformPaths`, `FilePermissionService`, `AgentServi
 
 | Ưu tiên | Việc | Ghi chú |
 |---|---|---|
+| P1 | Chạy thử và build bản macOS trên Mac thật | Code macOS đã có nhưng chưa chạy trên Mac: cần chạy `npm test`, `npm run e2e`, `npm run dist:mac`, rồi thử tay thêm key có passphrase vào agent (askpass.sh + Unix socket), Keychain, sửa quyền. Có thể dùng GitHub Actions runner macOS. |
 | P1 | Tắt fuse `RunAsNode` của Electron | Hiện phải bật vì `askpass.cmd` chạy `electron.exe` ở chế độ Node. Cần một helper askpass riêng (exe nhỏ hoặc cơ chế khác) rồi mới tắt được. |
 | P1 | Ký số file exe (code signing) | Để Windows SmartScreen không cảnh báo. Cần chứng chỉ ký code. |
 | P1 | Kiểm tra ACL bằng SID thay vì tên nhóm | `icacls` in tên nhóm đã dịch trên Windows không phải tiếng Anh, và username có dấu có thể sai mã hoá. |
