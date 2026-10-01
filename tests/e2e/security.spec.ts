@@ -23,11 +23,14 @@ test('renderer has no Node access and only the narrow window.skm API', async () 
   const r = await l.page.evaluate(() => ({
     require: typeof (window as unknown as { require?: unknown }).require,
     process: typeof (window as unknown as { process?: unknown }).process,
-    skmKeys: Object.keys(window.skm).sort()
+    skmKeys: Object.keys(window.skm).sort(),
+    platform: window.skm.platform
   }));
   expect(r.require).toBe('undefined');
   expect(r.process).toBe('undefined');
-  expect(r.skmKeys).toEqual(['agent', 'clipboard', 'config', 'env', 'keys', 'pathForFile', 'settings', 'test']);
+  expect(r.skmKeys).toEqual(['agent', 'clipboard', 'config', 'env', 'keys', 'pathForFile', 'platform', 'settings', 'test']);
+  // `platform` is a plain string (for shortcuts/wording), not a capability.
+  expect(r.platform).toBe(process.platform);
 });
 
 test('strict CSP is present and enforced', async () => {

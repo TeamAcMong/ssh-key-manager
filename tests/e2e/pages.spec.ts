@@ -1,10 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
-import { runProcess } from '../../src/core/process/ProcessRunner';
 import { launch, shot } from './app';
-
-const ICACLS = path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'icacls.exe');
+import { makeWorldReadable } from '../unit/helpers';
 
 for (const theme of ['light', 'dark'] as const) {
   test(`pages render correctly (${theme})`, async () => {
@@ -20,7 +18,7 @@ for (const theme of ['light', 'dark'] as const) {
       await shot(page, `keys-empty-${theme}`);
 
       // Generate dialog via Ctrl+N
-      await page.keyboard.press('Control+N');
+      await page.keyboard.press('ControlOrMeta+N');
       const dlg = page.getByTestId('generate-dialog');
       await expect(dlg).toBeVisible();
       await page.getByTestId('gen-label').fill('github');
@@ -38,7 +36,7 @@ for (const theme of ['light', 'dark'] as const) {
       await dlg.getByRole('button', { name: 'Xong' }).click();
 
       // Name validation: existing file is reported live
-      await page.keyboard.press('Control+N');
+      await page.keyboard.press('ControlOrMeta+N');
       await page.getByTestId('gen-filename').fill('id_ed25519_github');
       await expect(dlg).toContainText('Đã có file');
       await page.getByTestId('gen-filename').fill('id_rsa_legacy');
@@ -54,8 +52,7 @@ for (const theme of ['light', 'dark'] as const) {
       await shot(page, `keys-${theme}`);
 
       // Unsafe ACL banner, then fix all
-      const r = await runProcess(ICACLS, [path.join(l.sshDir, 'id_rsa_legacy'), '/grant', '*S-1-1-0:(R)']);
-      expect(r.code).toBe(0);
+      await makeWorldReadable(path.join(l.sshDir, 'id_rsa_legacy'));
       await page.keyboard.press('F5');
       await expect(page.getByTestId('unsafe-banner')).toContainText('1 key có quyền không an toàn');
       await expect(page.getByTestId('acl-warning')).toBeVisible();
@@ -87,7 +84,8 @@ for (const theme of ['light', 'dark'] as const) {
       const state = await page.getByTestId('agent-state').textContent();
       if (state === 'Bị tắt' || state === 'Đã dừng') {
         await page.getByTestId('agent-start').click();
-        if (state === 'Bị tắt') await expect(page.getByTestId('agent-admin')).toContainText('sc.exe config ssh-agent start= auto');
+        if (state === 'Bị tắt' && process.platform === 'win32') await expect(page.getByTestId('agent-admin')).toContainText('sc.exe config ssh-agent start= auto');
+        if (process.platform === 'darwin') await expect(page.getByTestId('agent-terminal')).toContainText('launchctl');
         await shot(page, `agent-${theme}`);
       } else if (state === 'Đang chạy') {
         // Add the passphrase-protected sandbox key through the GUI (askpass runs via electron.exe), then remove it.
@@ -111,7 +109,7 @@ for (const theme of ['light', 'dark'] as const) {
 
       // Generate -> "Tạo Host trong config" -> prefilled form -> diff -> write
       await page.getByTestId('nav-keys').click();
-      await page.keyboard.press('Control+N');
+      await page.keyboard.press('ControlOrMeta+N');
       await page.getByTestId('gen-label').fill('work');
       await page.getByTestId('gen-submit').click();
       await expect(page.getByTestId('result-fingerprint')).toContainText('SHA256:', { timeout: 30_000 });

@@ -49,6 +49,7 @@ import {
 import type { DetectedKeyType, KeyDetail, KeyInfo, SkmErrorData } from '../../core/types';
 import { t } from '../i18n/t';
 import { api, call, errorData } from '../lib/api';
+import { isMac, isModKey, modLabel } from '../lib/platform';
 import { CopyTextButton, EmptyState, ErrorCard, Mono, useNotify } from '../components/common';
 import { ChangePassphraseDialog, RenameDialog } from '../components/KeyDialogs';
 
@@ -262,14 +263,14 @@ export function KeysPage(props: {
       if (last) setSelectedId(last);
     });
 
-  // Page-level shortcuts: Ctrl+Shift+C copy public key, Del delete (both need a selection).
+  // Page-level shortcuts: Ctrl/Cmd+Shift+C copy public key, Del (Cmd+Backspace on macOS) delete; both need a selection.
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (props.dialogOpen || passKey || renameKey || !selectedId) return;
-      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'c') {
+      if (isModKey(e) && e.shiftKey && e.key.toLowerCase() === 'c') {
         e.preventDefault();
         void copyPublic(selectedId);
-      } else if (e.key === 'Delete' && !isTyping(e)) {
+      } else if ((e.key === 'Delete' || (isMac() && e.metaKey && e.key === 'Backspace')) && !isTyping(e)) {
         e.preventDefault();
         void remove(selectedId);
       }
@@ -370,7 +371,7 @@ export function KeysPage(props: {
             <EmptyState
               icon={<KeyMultipleRegular fontSize={48} />}
               title={t('keys.empty.title')}
-              body={t('keys.empty.body')}
+              body={t('keys.empty.body', { mod: modLabel() })}
               action={
                 <Button appearance="primary" icon={<Add20Regular />} onClick={props.onNewKey}>
                   {t('keys.new')}

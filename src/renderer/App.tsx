@@ -3,6 +3,7 @@ import { FluentProvider, Toaster, makeStyles, tokens, webDarkTheme, webLightThem
 import type { AgentServiceState, EnvInfo, KeyDetail, KeyInfo, Settings, SkmErrorData } from '../core/types';
 import { setLanguage, t } from './i18n/t';
 import { api, call, errorData } from './lib/api';
+import { isModKey } from './lib/platform';
 import { Sidebar, StatusBar, type PageId } from './components/Shell';
 import { ErrorCard, TOASTER_ID, useNotify } from './components/common';
 import { GenerateDialog } from './components/GenerateDialog';
@@ -67,10 +68,10 @@ function Shell(props: { settings: Settings; onSettingsChanged: (s: Settings) => 
     };
   }, [loadAgent]);
 
-  // Global shortcuts: Ctrl+N new key (any page), F5 refresh the current page.
+  // Global shortcuts: Ctrl/Cmd+N new key (any page), F5 refresh the current page.
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'n') {
+      if (isModKey(e) && !e.shiftKey && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         setPage('keys');
         setGenerateOpen(true);

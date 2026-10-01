@@ -25,6 +25,7 @@ import { Add20Regular, Delete20Regular, Play20Regular, ShieldKeyholeRegular, Shi
 import type { AgentKey, AgentServiceStatus, AgentStartResult, KeyInfo, SkmErrorData } from '../../core/types';
 import { t, type MessageKey } from '../i18n/t';
 import { api, call, errorData } from '../lib/api';
+import { isMac } from '../lib/platform';
 import { CopyTextButton, EmptyState, ErrorCard, Mono, useNotify } from '../components/common';
 
 const useStyles = makeStyles({
@@ -104,11 +105,13 @@ export function AgentPage(props: {
           <ShieldRegular fontSize={28} />
           <div className={s.grow}>
             <Text weight="semibold" block>
-              {t('agent.service')}
+              {isMac() ? t('agent.service.mac') : t('agent.service')}
             </Text>
-            <Text size={200}>
-              {t('agent.startType')}: {status?.startType ?? '—'}
-            </Text>
+            {isMac() ? null : (
+              <Text size={200}>
+                {t('agent.startType')}: {status?.startType ?? '—'}
+              </Text>
+            )}
           </div>
           <Badge appearance="filled" color={COLOR[status?.state ?? 'unknown']} data-testid="agent-state">
             {t(`status.agent.${status?.state ?? 'unknown'}` as MessageKey)}
@@ -163,10 +166,27 @@ export function AgentPage(props: {
             </MessageBarBody>
           </MessageBar>
         ) : null}
+        {start && !start.started && !start.needsAdmin ? (
+          // macOS: launchd owns the agent, so the fix is a Terminal command the user runs (no elevation).
+          <MessageBar intent="warning" layout="multiline" data-testid="agent-terminal">
+            <MessageBarBody>
+              <MessageBarTitle>{t('agent.notStarted')}</MessageBarTitle>
+              {start.messageVi}
+              {start.adminCommand ? (
+                <div className={s.cmd}>
+                  <div className={s.cmdBox}>
+                    <Mono>{start.adminCommand}</Mono>
+                  </div>
+                  <CopyTextButton text={start.adminCommand} onError={setError} />
+                </div>
+              ) : null}
+            </MessageBarBody>
+          </MessageBar>
+        ) : null}
       </Card>
 
       <MessageBar intent="info">
-        <MessageBarBody>{t('agent.persistWarn')}</MessageBarBody>
+        <MessageBarBody>{isMac() ? t('agent.persistWarn.mac') : t('agent.persistWarn')}</MessageBarBody>
       </MessageBar>
 
       <Text weight="semibold">{t('agent.loaded')}</Text>

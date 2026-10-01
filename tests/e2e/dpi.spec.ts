@@ -7,7 +7,7 @@ for (const scale of [1.5, 2]) {
     const l = await launch('light', { extraArgs: [`--force-device-scale-factor=${scale}`], window: { width: 1000, height: 650 } });
     try {
       const { page } = l;
-      await page.keyboard.press('Control+N');
+      await page.keyboard.press('ControlOrMeta+N');
       await page.getByTestId('gen-label').fill('dpi');
       await page.getByTestId('gen-submit').click();
       await expect(page.getByTestId('result-fingerprint')).toContainText('SHA256:', { timeout: 30_000 });

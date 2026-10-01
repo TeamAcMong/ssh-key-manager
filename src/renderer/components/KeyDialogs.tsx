@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, Field, Input, Spinner, Text, makeStyles, tokens } from '@fluentui/react-components';
+import { Button, Checkbox, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, Field, Input, Spinner, Text, makeStyles, tokens } from '@fluentui/react-components';
 import type { KeyInfo, SkmErrorData } from '../../core/types';
 import { t } from '../i18n/t';
 import { api, call, errorData } from '../lib/api';
+import { isMac } from '../lib/platform';
 import { ErrorCard, PassphraseField, StrengthMeter } from './common';
 
 const useStyles = makeStyles({
@@ -151,6 +152,7 @@ export function RenameDialog(props: BaseProps & { onDone: (newName: string, conf
 
 export function AgentPassphraseDialog(props: BaseProps & { onDone: () => void }): JSX.Element {
   const [pass, setPass] = useState('');
+  const [keychain, setKeychain] = useState(false);
   const open = props.keyInfo !== null;
   useEffect(() => setPass(''), [open]);
   return (
@@ -164,12 +166,13 @@ export function AgentPassphraseDialog(props: BaseProps & { onDone: () => void })
       onSubmit={async () => {
         const p = pass;
         setPass('');
-        await call(api().agent.add(props.keyInfo?.id ?? '', p));
+        await call(api().agent.add(props.keyInfo?.id ?? '', p, isMac() ? keychain : undefined));
         props.onDone();
       }}
     >
       <Text>{t('agentPass.body', { name: props.keyInfo?.id ?? '' })}</Text>
       <PassphraseField label={t('gen.passphrase')} value={pass} onChange={setPass} autoFocus />
+      {isMac() ? <Checkbox checked={keychain} onChange={(_e, d) => setKeychain(d.checked === true)} label={t('agentPass.keychain')} data-testid="agent-keychain" /> : null}
     </ActionDialog>
   );
 }

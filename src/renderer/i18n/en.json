@@ -15,7 +15,7 @@
   "keys.title": "SSH Keys",
   "keys.new": "New key",
   "keys.empty.title": "No keys yet",
-  "keys.empty.body": "Click \"New key\" (Ctrl+N) or drop a key file here to import it.",
+  "keys.empty.body": "Click \"New key\" ({mod}+N) or drop a key file here to import it.",
   "settings.title": "Settings",
   "settings.language": "Language",
   "agent.start": "Start",
