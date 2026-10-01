@@ -1,197 +1,113 @@
 # SSH Key Manager
 
-Ứng dụng desktop (Windows) để **tạo và quản lý SSH key**. Có giao diện đồ hoạ (GUI) là sản phẩm chính và CLI `skm` đi kèm, cả hai dùng chung một lõi xử lý.
+Ứng dụng Windows giúp **tạo, quản lý và kiểm tra SSH key** mà không phải nhớ lệnh `ssh-keygen`, `ssh-add` hay tự sửa file `~/.ssh/config`. Có giao diện đồ hoạ và CLI `skm` đi kèm.
 
-Ứng dụng **không tự cài đặt thuật toán mật mã nào**. Mọi thao tác với key đều gọi các công cụ OpenSSH có sẵn của Windows: `ssh-keygen`, `ssh-add`, `ssh`, `sc`, `icacls`.
+Ứng dụng không tự cài thuật toán mật mã nào: mọi thao tác đều gọi OpenSSH có sẵn của Windows.
 
 ![Trang Keys](docs/screenshots/keys-light.png)
 
-## Tính năng (phase 1)
+## Tải về
 
-| Tính năng | GUI | CLI |
-|---|---|---|
-| Tạo key Ed25519 (mặc định), RSA 3072/4096, ECDSA 256/384/521; passphrase tuỳ chọn; không bao giờ ghi đè key có sẵn | Dialog "Tạo key mới" (Ctrl+N) | `skm gen` |
-| Danh sách key: loại, số bit, fingerprint SHA256, comment, ngày tạo, có passphrase hay không, randomart; tag và ghi chú | Trang **Keys** | `skm list`, `skm info` |
-| Copy public key, đổi hoặc bỏ passphrase, đổi tên, xoá (có hộp thoại xác nhận), import bằng kéo thả | Trang **Keys** | — |
-| Phát hiện private key có quyền file (ACL) không an toàn và sửa bằng một cú bấm | Banner "Sửa tất cả" | `skm fix-perms` |
-| Service ssh-agent của Windows: xem trạng thái, khởi động, thêm và gỡ key | Trang **ssh-agent** | `skm agent …` |
-| Sửa `~/.ssh/config`: thêm, sửa, xoá khối Host; giữ nguyên comment và các dòng khác; **xem diff trước khi ghi** | Trang **Config** | `skm config …` |
-| Mẫu dịch vụ điền sẵn HostName/User/Port: GitHub, GitLab, Bitbucket (cả bản port 443), Azure DevOps, AWS CodeCommit, AWS EC2, Codeberg, Hugging Face, VPS; kèm hướng dẫn các giá trị phải tự điền (region, SSH Key ID, DNS của instance…) | Trang **Config** → Thêm Host | — |
-| `StrictHostKeyChecking accept-new` cho từng Host: lần đầu kết nối ssh tự thêm host key vào known_hosts, key bị đổi thì vẫn chặn | Trang **Config** (mẫu dịch vụ chọn sẵn) | `skm config add/set --strict-host-key-checking accept-new` |
-| Kiểm tra kết nối `ssh -T -o BatchMode=yes`, giải thích lỗi bằng tiếng Việt | Trang **Kiểm tra kết nối** | `skm test` |
-| Host chưa có trong known_hosts: GitHub/GitLab/Bitbucket được đối chiếu với fingerprint công bố rồi **tự thêm**; host khác hiện fingerprint để bạn xác nhận. Luôn sao lưu `known_hosts.<thời gian>.bak` trước khi ghi | Trang **Kiểm tra kết nối** | — |
+Vào [Releases](../../releases/latest) và tải `SSH-Key-Manager-<version>-portable.exe`. File chạy ngay, không cần cài đặt.
 
-Các tính năng sẽ làm sau (FIDO2, upload key lên GitHub/GitLab, installer…) chưa có trong phase 1.
+- Cần Windows 10/11 x64 có **OpenSSH Client**. Windows đã cài sẵn; kiểm tra bằng `ssh -V`.
+- File chưa ký số nên SmartScreen sẽ cảnh báo. Bấm *More info*, rồi *Run anyway*.
+- App làm việc với thư mục SSH thật (`%USERPROFILE%\.ssh`). Nếu chỉ muốn thử, vào **Cài đặt** chọn một thư mục khác. Thanh trạng thái luôn cho biết đang dùng thư mục nào.
+- Nếu thư mục SSH chưa có, app tự tạo.
 
-## Yêu cầu
+## Tính năng
 
-- Windows 10/11 x64, có **OpenSSH Client**. Mặc định Windows đã cài; kiểm tra bằng `ssh -V`.
-- Node.js **20.19 trở lên** (đã thử với 26.8) và npm.
-- Chỉ cần nếu muốn dùng ssh-agent: service `ssh-agent` phải được bật **một lần** bằng quyền Administrator (xem [Bật ssh-agent](#bật-ssh-agent)).
+### Tạo key
+Bấm **Ctrl+N**, đặt tên và (nên) đặt passphrase. Hỗ trợ Ed25519 (mặc định), RSA 3072/4096, ECDSA. App không bao giờ ghi đè key có sẵn. Tạo xong có thể copy public key, hoặc tạo luôn một khối Host trong config cho key đó.
 
-## Cài đặt
+![Tạo key](docs/screenshots/generate-light.png)
 
-```powershell
-npm install
-```
+### Quản lý key
+Trang **Keys** liệt kê mọi key với fingerprint, loại key, ngày tạo, có passphrase hay không, kèm tag và ghi chú của bạn. Từ đây bạn có thể copy public key, đổi hoặc bỏ passphrase, đổi tên, xoá (có xác nhận), hoặc kéo thả file để import.
 
-npm 11 trở lên chặn install script chưa được duyệt, nên đôi khi binary của Electron không được tải về. Nếu `node_modules\electron\dist\electron.exe` chưa có, chạy thêm:
+Private key bị người khác đọc được thì OpenSSH sẽ từ chối dùng. App phát hiện chuyện này và sửa bằng nút **Sửa tất cả**.
 
-```powershell
-node node_modules/electron/install.js
-```
+![Key có quyền không an toàn](docs/screenshots/keys-unsafe-light.png)
 
-## Chạy khi phát triển
+### ssh-agent
+Xem trạng thái service ssh-agent của Windows, khởi động nó, thêm key vào agent (chỉ nhập passphrase một lần) và gỡ key.
 
-```powershell
-npm run dev
-```
-
-> **Chạy từ terminal của VS Code?** VS Code đặt biến `ELECTRON_RUN_AS_NODE=1`, khiến Electron khởi động như Node thuần và báo lỗi `bad option`. Xoá biến trước khi chạy:
-> PowerShell: `Remove-Item Env:ELECTRON_RUN_AS_NODE` · CMD: `set ELECTRON_RUN_AS_NODE=`
-
-Ở chế độ dev, ứng dụng **không động vào dữ liệu thật**:
-
-- Lần chạy đầu, thư mục SSH mặc định là `.\sandbox-ssh` của repo, không phải `%USERPROFILE%\.ssh`.
-- Cài đặt, metadata và cache của Electron được lưu trong `.\.dev-appdata`, không phải `%APPDATA%`.
-
-## Thư mục sandbox
-
-Nên dùng một thư mục SSH riêng (sandbox) cho mọi lần thử nghiệm.
-
-- **GUI:** vào **Cài đặt**, mục **Thư mục SSH**, bấm **Chọn thư mục…**. Thanh trạng thái hiện nhãn `SANDBOX`, hoặc `THƯ MỤC THẬT` khi đang dùng `%USERPROFILE%\.ssh`. Ở chế độ dev, trang Cài đặt còn hiện cảnh báo nếu bạn chọn thư mục thật.
-- **CLI:** thêm `--ssh-dir .\sandbox-ssh` vào mọi lệnh.
-- **Biến môi trường** (dùng cho test tự động):
-  - `SKM_SSH_DIR`: ép thư mục SSH.
-  - `SKM_APPDATA_DIR`: nơi lưu `settings.json` và `metadata.json`.
-
-Mọi thao tác chỉ được phép diễn ra **bên trong** thư mục SSH đã chọn. Đường dẫn chứa `..`, `\` hay tên ổ đĩa đều bị từ chối.
-
-## Dùng CLI
-
-Build trước, rồi gọi CLI qua `npm run cli --` hoặc chạy trực tiếp bằng `node`:
-
-```powershell
-npm run build
-npm run cli -- --help
-node out/node/cli/index.js --ssh-dir .\sandbox-ssh list
-```
-
-| Lệnh | Việc làm |
-|---|---|
-| `skm gen [-t ed25519\|rsa\|ecdsa] [-b bits] [-C comment] [-f tên]` | Tạo key. Hỏi passphrase ẩn trên terminal; `--passphrase-stdin` đọc passphrase từ stdin; `--no-passphrase` tạo key không có passphrase |
-| `skm list [--json]` | Liệt kê key |
-| `skm info <key> [--json]` | Fingerprint, randomart, public key |
-| `skm fix-perms <key…> \| --all` | Sửa quyền file private key |
-| `skm agent status \| start \| list` | Trạng thái, khởi động, liệt kê key trong agent |
-| `skm agent add <key> [--passphrase-stdin]` | Thêm key vào agent |
-| `skm agent remove <key \| SHA256:…>` | Gỡ key khỏi agent |
-| `skm config list \| show` | Xem các khối Host, hoặc nội dung nguyên văn của file |
-| `skm config add <alias> [--hostname] [--user] [--port] [--identity <key>] [--identities-only yes\|no] [--strict-host-key-checking accept-new\|yes\|ask\|no] [-y]` | Thêm khối Host |
-| `skm config set <alias> …` / `skm config rm <alias>` | Sửa hoặc xoá khối Host (truyền `""` để xoá một dòng) |
-| `skm test <host> [--timeout giây]` | Kiểm tra kết nối |
-
-Ví dụ:
-
-```powershell
-$env:SKM_APPDATA_DIR = ".dev-appdata"      # tuỳ chọn: không đụng %APPDATA%
-node out/node/cli/index.js --ssh-dir .\sandbox-ssh gen -f id_ed25519_work
-node out/node/cli/index.js --ssh-dir .\sandbox-ssh config add work --hostname github.com --user git --identity id_ed25519_work --identities-only yes
-node out/node/cli/index.js --ssh-dir .\sandbox-ssh test work
-```
-
-Mọi lần ghi config đều in diff và hỏi xác nhận `[y/N]`. Khi chạy trong script không có terminal, phải thêm `-y` để xác nhận. Lệnh trả về mã thoát khác 0 khi có lỗi.
-
-## Bật ssh-agent
-
-Mặc định service `ssh-agent` của Windows ở trạng thái *Disabled*. Để bật, mở PowerShell bằng **Run as administrator** rồi chạy:
+Mặc định Windows để ssh-agent ở trạng thái *Disabled*. Lần đầu, bấm **Khởi động** rồi **Bật bằng quyền Administrator**, hoặc chạy PowerShell bằng *Run as administrator*:
 
 ```powershell
 Set-Service -Name ssh-agent -StartupType Automatic
 Start-Service ssh-agent
 ```
 
-Cách khác: trong app, vào trang **ssh-agent**, bấm **Khởi động**, rồi bấm **Bật bằng quyền Administrator (UAC)**.
+ssh-agent của Windows giữ các key đã thêm cả sau khi khởi động lại máy. Gỡ key khi không còn dùng.
 
-> ssh-agent của Windows lưu các key đã thêm vào registry của tài khoản và **vẫn giữ chúng sau khi khởi động lại máy**. Gỡ key khi không còn dùng.
+### Sửa `~/.ssh/config`
+Thêm, sửa, xoá khối Host bằng form. Comment và các dòng app không quản lý được giữ nguyên. Trước khi ghi, app luôn **hiện diff** để bạn xem và tự sao lưu file cũ thành `config.<thời gian>.bak`.
 
-## Đóng gói file .exe
+![Diff trước khi ghi](docs/screenshots/config-diff-light.png)
+
+**Mẫu dịch vụ:** khi thêm Host, chọn một dịch vụ để điền sẵn HostName, User và Port. Có mẫu cho GitHub, GitLab, Bitbucket (cả bản qua port 443 khi mạng chặn port 22), Azure DevOps, AWS CodeCommit, AWS EC2, Codeberg, Hugging Face và Linux server/VPS. Với dịch vụ không có địa chỉ cố định như AWS, form ghi rõ giá trị nào phải tự điền và lấy ở đâu.
+
+![Mẫu dịch vụ](docs/screenshots/config-preset-light.png)
+
+### Kiểm tra kết nối
+Chọn một Host rồi bấm **Chạy** để xem key có đăng nhập được không. Lỗi được giải thích bằng tiếng Việt, kèm nút sửa nhanh: sửa quyền file, thêm key vào agent, khởi động agent.
+
+Lần đầu kết nối tới một máy chủ mới, host key của nó chưa có trong `known_hosts`:
+- **GitHub, GitLab, Bitbucket:** app đối chiếu host key với fingerprint mà nhà cung cấp công bố. Khớp thì tự thêm và chạy lại; không khớp thì từ chối, vì có thể đang bị giả mạo máy chủ.
+- **Máy chủ khác** (Hugging Face, EC2, VPS…): app hiện fingerprint để bạn xác nhận rồi thêm bằng một nút bấm.
+- Muốn ssh tự xử lý lần đầu kết nối, kể cả khi chạy `git clone`/`git push`: đặt **StrictHostKeyChecking = accept-new** cho Host đó trong trang Config. Host tạo từ mẫu dịch vụ đã được chọn sẵn. Nếu sau này host key bị đổi, ssh vẫn chặn.
+
+![Kiểm tra kết nối](docs/screenshots/test-light.png)
+
+### Giao diện
+Tiếng Việt, giao diện sáng, tối hoặc theo hệ thống, hiển thị tốt ở DPI 150% và 200%.
+
+## An toàn
+
+- Private key không bao giờ được gửi lên giao diện, không bao giờ vào clipboard, log hay thông báo lỗi.
+- Passphrase không xuất hiện trong dòng lệnh hay biến môi trường của tiến trình.
+- Mọi thao tác chỉ diễn ra bên trong thư mục SSH đã chọn.
+- App sao lưu `config` và `known_hosts` trước mỗi lần ghi. Xoá key hay ghi config đều phải xác nhận.
+- Khi lấy host key, app không gửi key hay mật khẩu nào lên máy chủ.
+- App không kết nối Internet, trừ lúc bạn chủ động kiểm tra kết nối.
+
+## CLI `skm`
+
+Có đủ các thao tác chính để dùng trong terminal hoặc script:
+
+| Lệnh | Việc làm |
+|---|---|
+| `skm gen [-t ed25519\|rsa\|ecdsa] [-b bits] [-C comment] [-f tên]` | Tạo key (hỏi passphrase ẩn; `--passphrase-stdin` cho script) |
+| `skm list` / `skm info <key>` | Liệt kê key / xem fingerprint, public key (`--json` nếu cần) |
+| `skm fix-perms <key…> \| --all` | Sửa quyền file private key |
+| `skm agent status \| start \| list \| add <key> \| remove <key>` | Quản lý ssh-agent |
+| `skm config list \| show \| add <alias> \| set <alias> \| rm <alias>` | Sửa config, luôn in diff và hỏi xác nhận (`-y` để bỏ qua) |
+| `skm test <host>` | Kiểm tra kết nối |
+
+Dùng `--ssh-dir <thư mục>` để làm việc với thư mục SSH khác. Xem đầy đủ tuỳ chọn bằng `skm --help`.
+
+## Hạn chế
+
+- Chỉ chạy trên Windows.
+- Trên Windows không phải tiếng Anh, hoặc với tên tài khoản có dấu, kết quả kiểm tra quyền file có thể không chính xác.
+- Thông báo lỗi luôn bằng tiếng Việt; bản tiếng Anh mới dịch một phần.
+- Chưa có: khoá FIDO2, quản lý/xoá dòng cũ trong `known_hosts`, upload key lên GitHub/GitLab. Xem [docs/BACKLOG.md](docs/BACKLOG.md).
+
+## Dành cho người phát triển
+
+Cần Node.js 20.19 trở lên.
 
 ```powershell
-npm run dist
+npm install          # nếu thiếu electron.exe: node node_modules/electron/install.js
+npm run dev          # chạy app; dùng .\sandbox-ssh và .\.dev-appdata, không đụng dữ liệu thật
+npm run typecheck
+npm test             # unit test (Vitest)
+npm run build; npm run e2e   # e2e (Playwright), chụp lại ảnh trong docs/screenshots
+npm run dist         # đóng gói exe portable vào release\
+npm run cli -- --help        # chạy CLI sau khi build
 ```
 
-Lệnh này tạo `release\SSH-Key-Manager-<version>-portable.exe`: một file duy nhất, chạy không cần cài (khoảng 100 MB). Mỗi lần mở, file tự giải nén vào `%TEMP%`.
+Chạy từ terminal của VS Code thì xoá biến `ELECTRON_RUN_AS_NODE` trước (`Remove-Item Env:ELECTRON_RUN_AS_NODE`), nếu không Electron sẽ báo `bad option`.
 
-- Bản exe dùng **thư mục SSH thật** (`%USERPROFILE%\.ssh`) và `%APPDATA%\ssh-key-manager`. Hãy đổi thư mục trong Cài đặt nếu chỉ muốn thử.
-- File chưa ký số nên Windows SmartScreen sẽ cảnh báo. Bấm *More info*, rồi *Run anyway*.
-
-## Kiểm thử
-
-```powershell
-npm run typecheck   # TypeScript: main/core/CLI, renderer, e2e
-npm test            # Vitest: parser config, fingerprint, ghép cặp key, map lỗi, kiểm tra đường dẫn, và ssh-keygen/icacls thật trong .tmp-test
-npm run build       # bắt buộc trước e2e
-npm run e2e         # Playwright + Electron: mở từng trang, chụp ảnh vào docs/screenshots, kiểm tra bảo mật và DPI 150%/200%
-```
-
-- Test ssh-agent tự bỏ qua nếu service chưa chạy. Khi có chạy, test thêm rồi gỡ ngay một key tạo riêng trong sandbox.
-- Chạy e2e trên bản exe đã đóng gói: `$env:SKM_E2E_EXE = "$PWD\release\win-unpacked\SSH Key Manager.exe"; npm run e2e`.
-- Test chỉ dùng thư mục tạm trong `.tmp-test`. Test kết nối chỉ nhắm vào `127.0.0.1` với cổng đóng.
-
-## Bảo mật
-
-- **Electron:**
-  - Bật `contextIsolation` và `sandbox`, tắt `nodeIntegration`.
-  - CSP chặt: chỉ nạp script của chính app, không cho phép `eval`, không tải nội dung từ xa.
-  - Chặn điều hướng, cửa sổ mới, `webview` và mọi request ra ngoài; từ chối mọi quyền (permission).
-  - Phần giao diện (renderer) chỉ gọi được một API hẹp `window.skm.*`.
-  - Các điểm trên đều có test e2e kiểm chứng.
-- **Private key không bao giờ rời main process.** Qua IPC chỉ có metadata, fingerprint và public key. Clipboard từ chối nội dung private key.
-- **Passphrase không nằm trong command line hay biến môi trường.** OpenSSH lấy passphrase qua helper `SSH_ASKPASS` (`resources/askpass`), helper này hỏi lại app qua một named pipe dùng một lần có kèm token. Ô nhập passphrase bị che và được xoá khỏi state ngay khi bấm gửi. CLI không bao giờ nhận passphrase qua tham số.
-- **Không ghi passphrase hay private key vào log hoặc thông báo lỗi.** Chi tiết lỗi được redact (che các khối `PRIVATE KEY` và các secret đã biết). Log IPC chỉ ghi tên kênh và mã lỗi, không ghi payload.
-- **Kiểm tra mọi dữ liệu IPC trong main.** Đường dẫn phải nằm trong thư mục SSH đã chọn; host truyền cho `ssh` không được bắt đầu bằng `-`.
-- **Quyền file:** sau khi tạo hoặc import private key, app đặt ACL chỉ cho tài khoản hiện tại, bằng `icacls /inheritance:r /grant:r` và gỡ thêm các quyền cấp riêng cho người khác.
-- **Host key:** app lấy host key bằng chính `ssh` vào một file known_hosts tạm, chỉ đề nghị phương thức xác thực `none`, nên không gửi key hay mật khẩu nào. Chỉ tự thêm khi khớp fingerprint mà GitHub/GitLab/Bitbucket công bố; không khớp thì từ chối (nghi tấn công xen giữa). Lời chào ẩn danh của Hugging Face (`Hi anonymous`) không được tính là đăng nhập thành công.
-- **Sao lưu và xác nhận:** trước mỗi lần ghi `config` hoặc `known_hosts`, app sao lưu thành `<tên file>.<thời gian>.bak`. Xoá key hoặc ghi config đều cần xác nhận (hộp thoại native, diff, hoặc cờ `--yes`).
-- **Không dùng shell:** mọi lệnh ngoài chạy bằng `spawn` với mảng tham số và `shell: false`.
-- **Metadata không chứa key:** file metadata (`metadata.json`) chỉ chứa tag và ghi chú, gắn theo fingerprint. Ghi chú nào có dạng private key sẽ bị từ chối.
-
-## Cấu trúc thư mục
-
-```
-src/core      logic thuần Node/TS, không import electron (dùng chung cho GUI và CLI)
-  platform/     interface + bản cài đặt Windows (ACL, service agent, đường dẫn)
-src/main      main process của Electron: cửa sổ, hardening, IPC (+ validate đầu vào)
-src/preload   contextBridge -> window.skm
-src/renderer  React + Fluent UI v9, chữ hiển thị trong i18n/vi.json
-src/cli       CLI skm (commander)
-resources/askpass  helper SSH_ASKPASS
-tests/unit, tests/e2e
-docs/screenshots   ảnh chụp từ e2e
-```
-
-## Ảnh chụp màn hình
-
-| | Sáng | Tối |
-|---|---|---|
-| Keys | ![](docs/screenshots/keys-light.png) | ![](docs/screenshots/keys-dark.png) |
-| Keys: chưa có key | ![](docs/screenshots/keys-empty-light.png) | ![](docs/screenshots/keys-empty-dark.png) |
-| Keys: quyền không an toàn | ![](docs/screenshots/keys-unsafe-light.png) | ![](docs/screenshots/keys-unsafe-dark.png) |
-| Tạo key | ![](docs/screenshots/generate-light.png) | ![](docs/screenshots/generate-dark.png) |
-| Tạo key: kết quả | ![](docs/screenshots/generate-result-light.png) | ![](docs/screenshots/generate-result-dark.png) |
-| ssh-agent | ![](docs/screenshots/agent-light.png) | ![](docs/screenshots/agent-dark.png) |
-| Config | ![](docs/screenshots/config-light.png) | ![](docs/screenshots/config-dark.png) |
-| Config: diff trước khi ghi | ![](docs/screenshots/config-diff-light.png) | ![](docs/screenshots/config-diff-dark.png) |
-| Config: tab Raw | ![](docs/screenshots/config-raw-light.png) | ![](docs/screenshots/config-raw-dark.png) |
-| Config: mẫu dịch vụ | ![](docs/screenshots/config-preset-light.png) | ![](docs/screenshots/config-preset-dark.png) |
-| Kiểm tra kết nối | ![](docs/screenshots/test-light.png) | ![](docs/screenshots/test-dark.png) |
-| Cài đặt | ![](docs/screenshots/settings-light.png) | ![](docs/screenshots/settings-dark.png) |
-| Cửa sổ nhỏ nhất, DPI 150% / 200% | ![](docs/screenshots/keys-min-150pct.png) | ![](docs/screenshots/keys-min-200pct.png) |
-
-## Hạn chế đã biết
-
-- Hiện chỉ hỗ trợ Windows. Phần phụ thuộc hệ điều hành đã nằm sau các interface `PlatformPaths`, `FilePermissionService`, `AgentService`, nên có thể bổ sung macOS/Linux sau.
-- Trên Windows không phải tiếng Anh, `icacls` hiển thị tên nhóm hệ thống đã dịch, và username có dấu có thể bị sai mã hoá, khiến kết quả kiểm tra ACL không chính xác.
-- Thông báo lỗi luôn là tiếng Việt; `en.json` mới dịch một phần.
-- Bản exe để nguyên chế độ cho phép chạy như Node.js (`ELECTRON_RUN_AS_NODE`), vì helper nhập passphrase cần chế độ này.
+Mã nguồn: `src/core` (lõi dùng chung cho GUI và CLI), `src/main` (Electron main + IPC), `src/preload`, `src/renderer` (React + Fluent UI), `src/cli`, `tests/unit`, `tests/e2e`.
