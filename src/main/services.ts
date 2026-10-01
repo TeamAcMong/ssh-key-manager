@@ -11,6 +11,7 @@ import { KeyService } from '../core/keys/KeyService';
 import { AgentKeys } from '../core/agent/AgentKeys';
 import { ConfigStore } from '../core/config/ConfigStore';
 import { ConnectionTester } from '../core/test/ConnectionTester';
+import { HostKeyService } from '../core/test/HostKeys';
 import { SkmError } from '../core/errors/SkmError';
 import { exists } from '../core/store/fsutil';
 
@@ -24,6 +25,7 @@ export class AppServices {
   agent!: AgentKeys;
   config!: ConfigStore;
   tester!: ConnectionTester;
+  hostKeys!: HostKeyService;
   private version: string | null = null;
 
   /** `initialSshDir` seeds the SSH dir only on first run (no settings file yet), e.g. the dev sandbox. */
@@ -60,6 +62,7 @@ export class AppServices {
     this.agent = new AgentKeys(this.ctx);
     this.config = new ConfigStore(this.ctx);
     this.tester = new ConnectionTester(this.ctx);
+    this.hostKeys = new HostKeyService(this.ctx);
     this.version = await opensshVersion(this.ctx);
   }
 

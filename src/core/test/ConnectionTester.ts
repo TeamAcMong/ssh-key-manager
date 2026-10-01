@@ -6,7 +6,9 @@ import { mapSshError } from '../errors/errorMap';
 import { exists } from '../store/fsutil';
 
 // Git hosting services close the session with exit code 1 even when the key is accepted.
-const AUTH_OK = /successfully authenticated|Welcome to GitLab|authenticated via (a deploy key|ssh key)|You can use git to connect|Shell access is not supported/i;
+const AUTH_OK = /successfully authenticated|Welcome to GitLab|authenticated via (a deploy key|ssh key)|You can use git to connect|Shell access is not supported|Hi (?!anonymous,)[^,\s]+, welcome to Hugging Face/i;
+// Hugging Face lets anyone in anonymously and exits 0, so this greeting means no key was accepted.
+const HF_ANONYMOUS = /Hi anonymous, welcome to Hugging Face/i;
 
 export function validateHost(host: unknown): string {
   if (typeof host !== 'string' || !/^[A-Za-z0-9._@%:[\]-]{1,255}$/.test(host) || host.startsWith('-')) {
@@ -15,7 +17,7 @@ export function validateHost(host: unknown): string {
   return host;
 }
 
-function quoteOpt(p: string): string {
+export function quoteOpt(p: string): string {
   return `"${p.replace(/\\/g, '/')}"`;
 }
 
@@ -57,6 +59,15 @@ export class ConnectionTester {
       });
       const durationMs = Date.now() - started;
       if (r.cancelled) return { success: false, exitCode: r.code, durationMs, error: new SkmError('CANCELLED', 'Đã huỷ kiểm tra.').toData() };
+      if (HF_ANONYMOUS.test(r.stdout + r.stderr)) {
+        const err = new SkmError(
+          'PERMISSION_DENIED_PUBLICKEY',
+          'Hugging Face chỉ cho vào ở chế độ ẩn danh (anonymous): key của bạn chưa được nhận. Hãy thêm public key vào huggingface.co → Settings → SSH and GPG Keys, rồi đặt IdentityFile cho host này hoặc thêm key vào ssh-agent.',
+          r.stdout + r.stderr,
+          'add-to-agent'
+        );
+        return { success: false, exitCode: r.code, durationMs, error: err.toData() };
+      }
       if (r.code === 0 || AUTH_OK.test(r.stdout + r.stderr)) return { success: true, exitCode: r.code, durationMs };
       const mapped = mapSshError(r.stderr, { timedOut: r.timedOut }) ?? new SkmError('PROCESS_FAILED', `ssh kết thúc với mã ${r.code ?? 'không rõ'}.`, r.stderr);
       return { success: false, exitCode: r.code, durationMs, error: mapped.toData() };

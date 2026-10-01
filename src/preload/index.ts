@@ -48,7 +48,9 @@ const api: SkmApi = {
     run: (host, t) => invoke(CH.testRun, host, t),
     cancel: (runId) => invoke(CH.testCancel, runId),
     onOutput: (cb) => subscribe<TestOutputEvent>(CH.testOutput, cb),
-    onDone: (cb) => subscribe<TestDoneEvent>(CH.testDone, cb)
+    onDone: (cb) => subscribe<TestDoneEvent>(CH.testDone, cb),
+    scanHostKey: (host) => invoke(CH.testScanHostKey, host),
+    trustHostKey: (host, fps) => invoke(CH.testTrustHostKey, host, fps)
   },
   clipboard: { copyText: (text) => invoke(CH.clipboardCopy, text) },
   pathForFile: (file) => webUtils.getPathForFile(file)

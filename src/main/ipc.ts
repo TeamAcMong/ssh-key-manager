@@ -150,6 +150,13 @@ export function registerIpc(services: AppServices, isTrusted: (e: IpcMainInvokeE
   h(CH.testCancel, async (_e, runId) => {
     runs.get(v.str(runId, 'runId', 64))?.abort();
   });
+  h(CH.testScanHostKey, async (_e, host) => s.hostKeys.scan(v.str(host, 'host', 255)));
+  h(CH.testTrustHostKey, async (_e, host, fps) => {
+    if (!Array.isArray(fps) || fps.length === 0 || fps.length > 10) throw new SkmError('INVALID_INPUT', 'Danh sách fingerprint không hợp lệ.');
+    const fingerprints = fps.map((f) => v.str(f, 'fingerprint', 128));
+    if (fingerprints.some((f) => !/^SHA256:[A-Za-z0-9+/]+$/.test(f))) throw new SkmError('INVALID_INPUT', 'Fingerprint không hợp lệ.');
+    return s.hostKeys.trust(v.str(host, 'host', 255), fingerprints);
+  });
 
   h(CH.clipboardCopy, async (_e, text) => {
     const t = v.str(text, 'nội dung', 16_384);

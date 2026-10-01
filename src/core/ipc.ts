@@ -10,6 +10,7 @@ import type {
   EnvInfo,
   GenerateKeyRequest,
   HostEdit,
+  HostKeyScan,
   KeyDetail,
   KeyInfo,
   RenameResult,
@@ -71,6 +72,8 @@ export interface SkmApi {
     cancel(runId: string): Promise<Result<void>>;
     onOutput(cb: (e: TestOutputEvent) => void): () => void;
     onDone(cb: (e: TestDoneEvent) => void): () => void;
+    scanHostKey(host: string): Promise<Result<HostKeyScan>>;
+    trustHostKey(host: string, fingerprints: string[]): Promise<Result<{ added: number; backupPath: string | null }>>;
   };
   clipboard: {
     /** Copies non-secret text (fingerprints, commands). Main rejects private key material. */
@@ -110,5 +113,7 @@ export const CH = {
   testCancel: 'test:cancel',
   testOutput: 'test:output',
   testDone: 'test:done',
+  testScanHostKey: 'test:scanHostKey',
+  testTrustHostKey: 'test:trustHostKey',
   clipboardCopy: 'clipboard:copy'
 } as const;

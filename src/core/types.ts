@@ -194,6 +194,21 @@ export interface EnvInfo {
   opensshBinDir: string;
 }
 
+export interface ScannedHostKey {
+  type: string;
+  /** "SHA256:..." */
+  fingerprint: string;
+  /** true/false = matches/differs from the provider's published list; null = no published list for this host. */
+  published: boolean | null;
+}
+
+export interface HostKeyScan {
+  hostName: string;
+  port: number;
+  provider: string | null;
+  keys: ScannedHostKey[];
+}
+
 export interface ConnectionTestResult {
   success: boolean;
   exitCode: number | null;
