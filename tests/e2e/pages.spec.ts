@@ -75,7 +75,7 @@ for (const theme of ['light', 'dark'] as const) {
       await expect(page.getByTestId('settings-sshdir')).toHaveValue(l.sshDir);
       await expect(page.getByTestId('real-dir-warning')).toHaveCount(0);
       // Auto-detected OpenSSH dir is shown as a real path, not as a placeholder.
-      await expect(page.getByTestId('settings-bindir')).toHaveValue(/OpenSSH$/i);
+      await expect(page.getByTestId('settings-bindir')).toHaveValue(process.platform === 'win32' ? /OpenSSH$/i : /\/bin$/);
       await shot(page, `settings-${theme}`);
 
       // Agent: this machine's service is Disabled, so Start must explain the admin requirement.
@@ -95,10 +95,10 @@ for (const theme of ['light', 'dark'] as const) {
         await page.getByRole('option', { name: 'id_ed25519_github' }).click();
         await page.getByTestId('agent-add').click();
         const passDlg = page.getByTestId('agent-pass-dialog');
-        await passDlg.locator('input').fill('wrong passphrase!');
+        await passDlg.locator('input[type="password"]').fill('wrong passphrase!');
         await passDlg.getByRole('button', { name: 'Thêm vào agent' }).click();
         await expect(passDlg.getByTestId('error-card')).toContainText('Passphrase');
-        await passDlg.locator('input').fill('correct horse battery 42');
+        await passDlg.locator('input[type="password"]').fill('correct horse battery 42');
         await passDlg.getByRole('button', { name: 'Thêm vào agent' }).click();
         await expect(passDlg).toHaveCount(0);
         await expect(page.getByTestId(`agent-key-${fingerprint}`)).toBeVisible();

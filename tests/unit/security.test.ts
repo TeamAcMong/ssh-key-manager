@@ -73,7 +73,10 @@ describe('path validation', () => {
     expect(() => guard.assertInside(path.resolve('C:/sandbox/ssh-evil/k'))).toThrow();
     expect(() => guard.assertInside(root)).toThrow();
     expect(() => guard.assertInside(path.join(root, 'k'))).not.toThrow();
-    expect(() => guard.assertInside(path.join(root.toUpperCase(), 'k'))).not.toThrow();
+    // path.relative only ignores case on Windows; elsewhere a differently-cased root is a different directory.
+    const upperCased = () => guard.assertInside(path.join(root.toUpperCase(), 'k'));
+    if (process.platform === 'win32') expect(upperCased).not.toThrow();
+    else expect(upperCased).toThrow(SkmError);
   });
 
   it('validates new key file names', () => {
