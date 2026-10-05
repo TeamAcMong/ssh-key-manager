@@ -10,7 +10,7 @@ const program = new Command();
 program
   .name('skm')
   .description('SSH Key Manager — tạo và quản lý SSH key (OpenSSH trên Windows và macOS)')
-  .version('0.1.3')
+  .version('0.1.4')
   .option('--ssh-dir <path>', 'thư mục SSH (mặc định theo Cài đặt, thường là ~/.ssh). Nên dùng thư mục sandbox khi thử nghiệm.')
   .showHelpAfterError();
 
